@@ -478,6 +478,7 @@ safeRunChanging <- function(safety=1.5e6, reps=5e5, ...){
 }
 
 #' Standalone funciton to be used with the output of runChanging
+#' TODO: make it generate a ggplot with confidence intervals
 #' Returns a dataframe easy to use for plotting, with each row representing 
 #' a separate found value for the current changing_value, lambda, and omega.
 equilSimPlot <- function(fitness){
@@ -533,9 +534,9 @@ quantileGrid <- function(final_file, nA, alpha=NA, theta=NA, p=NA, lambda=NA, om
   
   
   
-  cases <- c(nA, alpha, theta, p, lambda, omega)
+  params <- c(nA, alpha, theta, p, lambda, omega)
   var_names <- c('nA','alpha','theta','p','lambda','omega')
-  names(cases) <- var_names
+  names(params) <- var_names
   
 
   xs <- seq(0, 1, seq_step_size)
@@ -546,22 +547,24 @@ quantileGrid <- function(final_file, nA, alpha=NA, theta=NA, p=NA, lambda=NA, om
                  dimnames=list(as.character(ys), as.character(xs)))
 
   # Used for plotting labels
-  attributes(grid)$x_name <- var_names[which(is.na(cases))[1]]
-  attributes(grid)$y_name <- var_names[which(is.na(cases))[2]]
-  attributes(grid)$held_steady <- var_names[which(!is.na(cases))]
+  attributes(grid)$x_name <- var_names[which(is.na(params))[1]]
+  attributes(grid)$y_name <- var_names[which(is.na(params))[2]]
+  attributes(grid)$held_steady <- var_names[which(!is.na(params))]
   
   for(x_val in xs){
     
+    params[[attributes(grid)$x_name]] <- x_val
+    
     for(y_val in ys){
-      cases[[attributes(grid)$x_name]] <- x_val
-      cases[[attributes(grid)$y_name]] <- y_val
       
-      base <- baseSimulation(cases[['nA']], cases[['alpha']], cases[['lambda']], 
-                             cases[['omega']], cases[['theta']], cases[['p']], reps)
+      params[[attributes(grid)$y_name]] <- y_val
+      
+      base <- baseSimulation(params[['nA']], params[['alpha']], params[['lambda']], 
+                             params[['omega']], params[['theta']], params[['p']], reps)
       
       mean_wS <- mean(base[,seq(from=1, to=ncol(base), by=2)])
       
-      perc <- mean_wS / cases[['nA']]
+      perc <- mean_wS / params[['nA']]
 
       upper_margin <- 1-margin
 
@@ -604,7 +607,7 @@ fillLocation <- function(grid, x_val, y_val, colors, is.lower){
   
   grid[y,x] <- colors[3] # > (1-margin) but < 1
   if(is.null(is.lower))
-    grid[x,y] <- colors[4] # > 1
+    grid[y,x] <- colors[4] # > 1
   else if(is.lower)
     grid[y,x] <- colors[2] # < margin
   
@@ -638,7 +641,7 @@ plotQuantileGrid <- function(grid, colors, nA, alpha, theta, p, omega, lambda){
       x2 <- col + dimension
       y1 <- row
       y2 <- row + dimension
-      rect(x1,y1,x2,y2, col=grid[x,y])
+      rect(x1,y1,x2,y2, col=grid[y,x])
       x <- x+1
     }
     y <- y+1
@@ -647,3 +650,5 @@ plotQuantileGrid <- function(grid, colors, nA, alpha, theta, p, omega, lambda){
   title(paste(attributes(grid)$y_name, "changing vs.", 
               attributes(grid)$x_name, "changing"))
 }
+
+
