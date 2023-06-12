@@ -44,14 +44,14 @@ floatMatch <- function(x, y){
 #' indicates to equilibriumSimulation that the returned bootstrapped vectors are good,
 #' and it will start to go backwards, to find where all(g_means < s_means). reverse
 #' will be true in this case.
-bootstrap <- function(fitness_g, fitness_s, bt_size, reverse=FALSE, gather.overlap=FALSE) {
+bootstrap <- function(fitness_g, fitness_s, bt_size=10000, reverse=FALSE, gather.overlap=FALSE) {
   
   g_means <- rep(0, bt_size)
   s_means <- rep(0, bt_size)
   
   # Two values which indicate the amount of bad overlapping that takes place
-  g_overlapping <- 0
-  s_overlapping <- 0
+  g_overlap <- 0
+  s_overlap <- 0
   
   
   for (i in 1:bt_size) {
@@ -70,21 +70,21 @@ bootstrap <- function(fitness_g, fitness_s, bt_size, reverse=FALSE, gather.overl
         }
       }
     }
-    else if (gather.overlap){
-      if(!reverse){
-        if(g_means[i] < s_means[i]){
-          s_overlapping <- s_overlapping + 1
-        }
+    else if(gather.overlap){
+      if(g_means[i] < s_means[i]){
+        s_overlap <- s_overlap + 1
       }
-      else if(reverse){
-        if(s_means[i] < g_means[i]){
-          g_overlapping <- g_overlapping + 1
-        }
+      else if(s_means[i] < g_means[i]){
+        g_overlap <- g_overlap + 1
       }
     }
   }
   
-  return(cbind(g_means, s_means, g_overlapping, s_overlapping))
+  if(gather.overlap){
+    return(cbind(s_overlap, g_overlap))
+  }
+  else
+    return(cbind(g_means, s_means))
 }
 
 #' Helper function used by baseSimulation
@@ -380,8 +380,6 @@ plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE, color
   curr_wS <- colMeans(base[,seq(from=1, to=ncol(base), by=2)])
   curr_wG <- colMeans(base[,seq(from=2, to=ncol(base), by=2)])
   
-  print(mean(curr_wS))
-  print(mean(curr_wG))
   y_min <- min(curr_wG)
   y_max <- max(curr_wG)
   
@@ -396,8 +394,8 @@ plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE, color
   if(with.prediction){
     if(is.na(prediction))
       stop("Needs a prediction matrix")
-    lines(y=prediction[1],x=1:length(curr_wS),col=colors[1])
-    lines(y=prediction[2],x=1:length(curr_wG), col=colors[2])
+    lines(y=prediction[1],x=1:length(curr_wS),col=colors[1], lwd=1.5)
+    lines(y=prediction[2],x=1:length(curr_wG), col=colors[2], lwd=1.5)
   }
 }
 
@@ -524,22 +522,34 @@ safeRunChanging <- function(safety=1.5e6, reps=5e5, ...){
 }
 
 
-gatherOverlap <- function(...){
-  base <- baseSimulation(...)
+
+
+gatherOverlap <- function(nA, alpha, theta, p, lambda, omega, ...){
   
-  for(i in 1:(ncol(base) / 2)){
-    bs_forward <- bootstrap(base[i + 1,], base[i,], FALSE, TRUE)
+  s_over <- c()
+  g_over <- c()
+  reverse.s_over <- c()
+  reverse.g_over <- c()
+  
+  base <- baseSimulation(nA=nA, alpha=alpha, theta=theta, 
+                         p=p, lambda=lambda, omega=omega, ...)
+  
+  base_s <- base[,seq(from=1, to=ncol(base), by=2)]
+  base_g <- base[,seq(from=2, to=ncol(base), by=2)]
+  
+  
+  for(i in 1:ncol(base_s)){
+    boot <- bootstrap(base_g[,i], base_s[,i], gather.overlap=TRUE, ...)
+    s_over[i] <- boot[1]
+    g_over[i] <- boot[2]
   }
-  
+  return(cbind(s_over, g_over))
 }
 
 
 
 
-
-
-
-#' Standalone funciton to be used with the output of runChanging
+#' Standalone function to be used with the output of runChanging
 #' TODO: make it generate a ggplot with confidence intervals
 #' Returns a dataframe easy to use for plotting, with each row representing 
 #' a separate found value for the current changing_value, lambda, and omega.
