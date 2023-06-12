@@ -44,27 +44,47 @@ floatMatch <- function(x, y){
 #' indicates to equilibriumSimulation that the returned bootstrapped vectors are good,
 #' and it will start to go backwards, to find where all(g_means < s_means). reverse
 #' will be true in this case.
-bootstrap <- function(fitness_g, fitness_s, bt_size, reverse=FALSE) {
+bootstrap <- function(fitness_g, fitness_s, bt_size, reverse=FALSE, gather.overlap=FALSE) {
   
   g_means <- rep(0, bt_size)
   s_means <- rep(0, bt_size)
+  
+  # Two values which indicate the amount of bad overlapping that takes place
+  g_overlapping <- 0
+  s_overlapping <- 0
+  
   
   for (i in 1:bt_size) {
     g_means[i] <- mean(sample(fitness_g, length(fitness_g), replace=TRUE))
     s_means[i] <- mean(sample(fitness_s, length(fitness_s), replace=TRUE))
     
-    if(reverse == FALSE){
-      if(g_means[i] < s_means[i]){
-        return(FALSE)
+    if(!gather.overlap){
+      if(!reverse){
+        if(g_means[i] < s_means[i]){
+          return(FALSE)
+        }
+      } 
+      else if(reverse){
+        if(s_means[i] < g_means[i]){
+          return(FALSE)
+        }
       }
-    } else if(reverse == TRUE){
-      if(s_means[i] < g_means[i]){
-        return(FALSE)
+    }
+    else if (gather.overlap){
+      if(!reverse){
+        if(g_means[i] < s_means[i]){
+          s_overlapping <- s_overlapping + 1
+        }
+      }
+      else if(reverse){
+        if(s_means[i] < g_means[i]){
+          g_overlapping <- g_overlapping + 1
+        }
       }
     }
   }
   
-  return(cbind(g_means, s_means))
+  return(cbind(g_means, s_means, g_overlapping, s_overlapping))
 }
 
 #' Helper function used by baseSimulation
@@ -312,7 +332,6 @@ baseSimulation <- function(nA, alpha, lambda, omega, theta, p, reps=500000){
   base <- c()
 
   
-  ###SHOULD IT BE (nA - 1)
   for(i in 1:nA){
     nB <- i
     
@@ -403,7 +422,7 @@ plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE, color
 #' RETURN: the fitness dataframe, which can also be found at plot_file
 runChanging <- function(plot_file, changing_name, changing_step_size, change_start, changing_length=10,
                          nA, alpha, theta, p, lambda, omega, save_base=FALSE, 
-                        base_file="", bt_size=10000, reps=500000) {
+                        base_file="", bt_size=10000, reps=500000, gather.overlap=FALSE) {
   
   if(save_base & isFALSE(file.exists(base_file))) 
     stop("Use a proper file path for the base")
@@ -503,6 +522,22 @@ safeRunChanging <- function(safety=1.5e6, reps=5e5, ...){
   }
   return(result)
 }
+
+
+gatherOverlap <- function(...){
+  base <- baseSimulation(...)
+  
+  for(i in 1:(ncol(base) / 2)){
+    bs_forward <- bootstrap(base[i + 1,], base[i,], FALSE, TRUE)
+  }
+  
+}
+
+
+
+
+
+
 
 #' Standalone funciton to be used with the output of runChanging
 #' TODO: make it generate a ggplot with confidence intervals
@@ -688,5 +723,3 @@ plotQuantileGrid <- function(grid, colors, nA, alpha, theta, p, lambda, omega){
   
   title(main=title_string, cex.main=0.9)
 }
-
-
