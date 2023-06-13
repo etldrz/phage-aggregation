@@ -21,11 +21,9 @@
 ###the particular value's mathematical prediction.
 
 
-#Global error messages:
+# Global error messages:
 no_upper_found <- "Reached the end of total_treatments without finding an upper limit"
 no_lower_found <- "Reached the bottom without finding a lower limit"
-
-
 
 
 #' Helper function used throughout
@@ -84,6 +82,65 @@ bootstrap <- function(fitness_g, fitness_s, bt_size=10000, reverse=FALSE, gather
     return(cbind(s_overlap, g_overlap))
   else
     return(cbind(g_means, s_means))
+}
+
+
+#' means[,1] is the vector that is supposed to be larger than means[,2]
+#' NOT CURRENTLY RECORDING ANYTHING
+switcheroo <- function(means, perc_cap){
+  perc <- 0
+  if(any(means[,1] < means[,2]))
+    perc <- (length(which(means[,1] < means[,2])) / nrow(means))*100
+  
+  if(perc < perc_cap | floatMatch(perc, perc_cap))
+    return(means)
+  
+  
+  
+  
+  to_fix <- which(means[,1] < means[,2] | floatMatch(means[,1], means[,2]))
+
+  legal.perc <- FALSE
+  
+  for(index in to_fix){
+    if(legal.perc)
+      return(means)
+    
+    viable <- which(!1:nrow(means) %in% to_fix)
+
+    overlap <- means[index,]
+    
+    count <- 1 # records how many times a redraw happens (how many items from viable were used)
+    while(!legal.perc & length(viable) > 0){
+      
+      rand <- sample(viable, 1)
+      means_rand <- means[rand,]
+      
+      if((means_rand[1] > overlap[2] | floatMatch(means_rand[1], overlap[2])) &
+         (overlap[1] > means_rand[2] | floatMatch(overlap[1], means_rand[2]))){
+        
+        temp <- means[rand,1]
+        means[rand,1] <- overlap[1]
+        means[index,1] <- temp
+        
+        
+        to_fix <- to_fix[which(!to_fix %in% index)]
+        
+        # If count ever gets used, then it will get wrongfully incremented if this chunk triggers
+      }
+      
+    
+      # Update viable to exclude the just-used value
+      viable <- viable[which(!viable %in% rand)]
+      
+
+      curr_failure_perc <- (length(to_fix) / nrow(means)) * 100
+      legal.perc <- curr_failure_perc < perc_cap | floatMatch(curr_failure_perc, perc_cap)
+      
+      count <- count + 1
+    }
+  }
+  return(NULL)
 }
 
 
@@ -334,7 +391,7 @@ baseSimulation <- function(nA, alpha, lambda, omega, theta, p, reps=500000){
   base <- c()
 
   
-  for(i in 1:nA){
+  for(i in 0:nA){
     nB <- i
     
     fit_wS <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
@@ -527,40 +584,41 @@ safeRunChanging <- function(safety=1.5e6, reps=5e5, ...){
 }
 
 
-gatherOverlap <- function(nA, alpha, theta, p, lambda, omega, ...){
-  
+gatherOverlap <- function(nA, alpha, theta, p, lambda, omega,
+                          bt_size=10000, reps=500000){
+
   s_over <- c()
   g_over <- c()
 
-  base <- baseSimulation(nA=nA, alpha=alpha, theta=theta, 
-                         p=p, lambda=lambda, omega=omega, ...)
-  
+  base <- baseSimulation(nA=nA, alpha=alpha, theta=theta,
+                         p=p, lambda=lambda, omega=omega, reps=reps)
+
   base_s <- base[,seq(from=1, to=ncol(base), by=2)]
   base_g <- base[,seq(from=2, to=ncol(base), by=2)]
-  
-  
+
+
   for(i in 1:ncol(base_s)){
-    boot <- bootstrap(base_g[,i], base_s[,i], gather.overlap=TRUE, ...)
+    boot <- bootstrap(base_g[,i], base_s[,i], gather.overlap=TRUE)
     s_over[i] <- boot[1]
     g_over[i] <- boot[2]
   }
-  
+
   return(cbind(s_over, g_over))
 }
 
 
 #' Standalone function to be used with the output of runChanging
 #' TODO: make it generate a ggplot with confidence intervals
-#' Returns a dataframe easy to use for plotting, with each row representing 
+#' Returns a dataframe easy to use for plotting, with each row representing
 #' a separate found value for the current changing_value, lambda, and omega.
 plotEquilibriumSimulation <- function(fitness){
-  
+
   plotting <- c()
   changing_value <- as.factor(fitness$changing_value)
   lambda <- as.factor(fitness$lambda)
   omega <- as.factor(fitness$omega)
-  
-  
+
+
   changing_value_levels <- levels(changing_value)
   lambda_levels <- levels(lambda)
   omega_levels <- levels(omega)
@@ -569,168 +627,168 @@ plotEquilibriumSimulation <- function(fitness){
     for(l in lambda_levels){
       for(o in omega_levels){
 
-        plotting <- rbind(plotting, fitness[which(fitness$changing_value == curr & 
-                                                    fitness$lambda == l & 
+        plotting <- rbind(plotting, fitness[which(fitness$changing_value == curr &
+                                                    fitness$lambda == l &
                                                     fitness$omega == o)[1],])
       }
     }
   }
-  
+
   # have this generate a plot and not just return
-  
+
   return(plotting)
 }
 
-
-#' Standalone function
-#' Makes a grid of of the two parameters which are left NA. Throws an error if two parameters
-#' aren't NA.
-#' final_file: where the grid is stored using write.table
-#' reps: the size of the fitness vectors which baseSimulation creates
-#' seq_step_size: the width and height of each square in the grid
-#' margin: the LOWER significant percentage value. mean(WS)/nA less than this is significant
-#'         for WG and mean(WS)/nA greater than 1-this is significant for WS.
-#' colors: a character vector of length 4, with [1] being not-significant either way
-#'         [2] being WG significant, [3] being WS significant, and [4] being very WS 
-#'         significant (>1)
-quantileGrid <- function(final_file, nA, alpha=NA, theta=NA, p=NA, lambda=NA, omega=NA,
-                        reps=500000, seq_step_size, colors){
-  
-  if(!file.exists(final_file))
-    stop("The file path is not valid.")
-  
-  if(length(colors) != 4)
-    stop("Incorrent length of your colors vector")
-  
-  if(sum(is.na(c(nA, alpha, theta, p, lambda, omega))) != 2)
-    stop("Too few or too many axes chosen")
-  
-  
-  
-  params <- c(nA, alpha, theta, p, lambda, omega)
-  var_names <- c('nA','alpha','theta','p','lambda','omega')
-  names(params) <- var_names
-  
-
-  xs <- seq(0, 1, seq_step_size)
-  ys <- seq(0, 1, seq_step_size)
-  
-
-  grid <- matrix(colors[1], nrow=length(ys), ncol=length(xs),
-                 dimnames=list(as.character(ys), as.character(xs)))
-
-  # Used for plotting labels
-  attributes(grid)$x_name <- var_names[which(is.na(params))[1]]
-  attributes(grid)$y_name <- var_names[which(is.na(params))[2]]
-  attributes(grid)$held_steady <- var_names[which(!is.na(params))]
-  for(x_val in xs){
-    
-    params[[attributes(grid)$x_name]] <- x_val
-    
-    for(y_val in ys){
-      
-      params[[attributes(grid)$y_name]] <- y_val
-      
-      base <- baseSimulation(params[['nA']], params[['alpha']], params[['lambda']], 
-                             params[['omega']], params[['theta']], params[['p']], reps)
-      
-      mean_wS <- mean(base[,seq(from=1, to=ncol(base), by=2)])
-      mean_wG <- mean(base[,seq(from=2, to=ncol(base), by=2)])
-      
-      perc <- mean_wS / mean_wG
-
-      
-      if(is.na(perc))
-        next
-      else if(perc > 1)
-        grid <- fillLocation(grid, x_val, y_val, colors, FALSE)
-      else if(perc < 1)
-        grid <- fillLocation(grid, x_val, y_val, colors, TRUE)
-      else if(floatMatch(perc, 1))
-        grid <- fillLocation(grid, x_val, y_val, colors, NULL)
-    }
-  }
-  
-  # #for reading comments
-  # content <- readLines(final_file)
-  # comments <- content[grep("^#", content)]
-  # # 
-  
-  write.table(grid, file=final_file, append=FALSE, quote=FALSE, sep=",")
-  
-  return(grid)
-} #end of quantileGrid
-
-
-#' Helper function for quantileGrid
-#' Fills in the appropriate location on the grid with the appropriate color.
-#' TODO: fix the inclusive/exclusive logic
-fillLocation <- function(grid, x_val, y_val, colors, is.lower){
-  x_loc <- as.numeric(rownames(grid))
-  y_loc <- as.numeric(colnames(grid))
-  
-
-  x <- which(sapply(x_loc, floatMatch, x_val))
-  y <- which(sapply(y_loc, floatMatch, y_val))
-
-  
-  grid[y,x] <- colors[2] # < 1
-  if(is.null(is.lower))
-    grid[y,x] <- colors[4] # > 1
-  else if(is.lower)
-    grid[y,x] <- colors[3] # = 1
-  
-  return(grid)
-}
-
-
-#' Standalone function to be used with the output of quantileGrid.
-#' Plots the given matrix as a visual grid.
-plotQuantileGrid <- function(grid, colors, nA, alpha, theta, p, lambda, omega){
-
-  
-  rows <- as.numeric(rownames(grid))
-  cols <- as.numeric(colnames(grid))
-  
-  dimension <- cols[2] - cols[1]
-  
-  plot(cols~rows, xlab=attributes(grid)$x_name, 
-       ylab=attributes(grid)$y_name, pch="",
-       ylim=c(0, 1 + dimension), xlim=c(0, 1 + dimension))
-  
-  par(mar=c(5, 4, 4, 10), xpd=TRUE)
-  legend("topright", inset=c(-0.5, 0), 
-         legend=c("WG prominent", 
-                  "WS prominent", "Equal mean"),
-         fill=colors[2:4])
-  
-  y <- 1
-  for(row in rows){
-    x <- 1
-    for(col in cols){
-      x1 <- col
-      x2 <- col + dimension
-      y1 <- row
-      y2 <- row + dimension
-      rect(x1,y1,x2,y2, col=grid[y,x])
-      x <- x+1
-    }
-    y <- y+1
-  }
-  
-  
-  params <- c(nA, alpha, theta, p, lambda, omega)
-  var_names <- c('nA','alpha','theta','p','lambda','omega')
-  names(params) <- var_names
-  
-
-  
-  title_string <- ""
-  
-  for(steady in attributes(grid)$held_steady)
-    title_string <- paste(title_string, steady, "=", params[[steady]], ";")
-  
-  title_string <- substr(title_string, 1, nchar(title_string) - 1)
-  
-  title(main=title_string, cex.main=0.9)
-}
+#' 
+#' #' Standalone function
+#' #' Makes a grid of of the two parameters which are left NA. Throws an error if two parameters
+#' #' aren't NA.
+#' #' final_file: where the grid is stored using write.table
+#' #' reps: the size of the fitness vectors which baseSimulation creates
+#' #' seq_step_size: the width and height of each square in the grid
+#' #' margin: the LOWER significant percentage value. mean(WS)/nA less than this is significant
+#' #'         for WG and mean(WS)/nA greater than 1-this is significant for WS.
+#' #' colors: a character vector of length 4, with [1] being not-significant either way
+#' #'         [2] being WG significant, [3] being WS significant, and [4] being very WS
+#' #'         significant (>1)
+#' quantileGrid <- function(final_file, nA, alpha=NA, theta=NA, p=NA, lambda=NA, omega=NA,
+#'                         reps=500000, seq_step_size, colors){
+#' 
+#'   if(!file.exists(final_file))
+#'     stop("The file path is not valid.")
+#' 
+#'   if(length(colors) != 4)
+#'     stop("Incorrent length of your colors vector")
+#' 
+#'   if(sum(is.na(c(nA, alpha, theta, p, lambda, omega))) != 2)
+#'     stop("Too few or too many axes chosen")
+#' 
+#' 
+#' 
+#'   params <- c(nA, alpha, theta, p, lambda, omega)
+#'   var_names <- c('nA','alpha','theta','p','lambda','omega')
+#'   names(params) <- var_names
+#' 
+#' 
+#'   xs <- seq(0, 1, seq_step_size)
+#'   ys <- seq(0, 1, seq_step_size)
+#' 
+#' 
+#'   grid <- matrix(colors[1], nrow=length(ys), ncol=length(xs),
+#'                  dimnames=list(as.character(ys), as.character(xs)))
+#' 
+#'   # Used for plotting labels
+#'   attributes(grid)$x_name <- var_names[which(is.na(params))[1]]
+#'   attributes(grid)$y_name <- var_names[which(is.na(params))[2]]
+#'   attributes(grid)$held_steady <- var_names[which(!is.na(params))]
+#'   for(x_val in xs){
+#' 
+#'     params[[attributes(grid)$x_name]] <- x_val
+#' 
+#'     for(y_val in ys){
+#' 
+#'       params[[attributes(grid)$y_name]] <- y_val
+#' 
+#'       base <- baseSimulation(params[['nA']], params[['alpha']], params[['lambda']],
+#'                              params[['omega']], params[['theta']], params[['p']], reps)
+#' 
+#'       mean_wS <- mean(base[,seq(from=1, to=ncol(base), by=2)])
+#'       mean_wG <- mean(base[,seq(from=2, to=ncol(base), by=2)])
+#' 
+#'       perc <- mean_wS / mean_wG
+#' 
+#' 
+#'       if(is.na(perc))
+#'         next
+#'       else if(perc > 1)
+#'         grid <- fillLocation(grid, x_val, y_val, colors, FALSE)
+#'       else if(perc < 1)
+#'         grid <- fillLocation(grid, x_val, y_val, colors, TRUE)
+#'       else if(floatMatch(perc, 1))
+#'         grid <- fillLocation(grid, x_val, y_val, colors, NULL)
+#'     }
+#'   }
+#' 
+#'   # #for reading comments
+#'   # content <- readLines(final_file)
+#'   # comments <- content[grep("^#", content)]
+#'   # #
+#' 
+#'   write.table(grid, file=final_file, append=FALSE, quote=FALSE, sep=",")
+#' 
+#'   return(grid)
+#' } #end of quantileGrid
+#' 
+#' 
+#' #' Helper function for quantileGrid
+#' #' Fills in the appropriate location on the grid with the appropriate color.
+#' #' TODO: fix the inclusive/exclusive logic
+#' fillLocation <- function(grid, x_val, y_val, colors, is.lower){
+#'   x_loc <- as.numeric(rownames(grid))
+#'   y_loc <- as.numeric(colnames(grid))
+#' 
+#' 
+#'   x <- which(sapply(x_loc, floatMatch, x_val))
+#'   y <- which(sapply(y_loc, floatMatch, y_val))
+#' 
+#' 
+#'   grid[y,x] <- colors[2] # < 1
+#'   if(is.null(is.lower))
+#'     grid[y,x] <- colors[4] # > 1
+#'   else if(is.lower)
+#'     grid[y,x] <- colors[3] # = 1
+#' 
+#'   return(grid)
+#' }
+#' 
+#' 
+#' #' Standalone function to be used with the output of quantileGrid.
+#' #' Plots the given matrix as a visual grid.
+#' plotQuantileGrid <- function(grid, colors, nA, alpha, theta, p, lambda, omega){
+#' 
+#' 
+#'   rows <- as.numeric(rownames(grid))
+#'   cols <- as.numeric(colnames(grid))
+#' 
+#'   dimension <- cols[2] - cols[1]
+#' 
+#'   plot(cols~rows, xlab=attributes(grid)$x_name,
+#'        ylab=attributes(grid)$y_name, pch="",
+#'        ylim=c(0, 1 + dimension), xlim=c(0, 1 + dimension))
+#' 
+#'   par(mar=c(5, 4, 4, 10), xpd=TRUE)
+#'   legend("topright", inset=c(-0.5, 0),
+#'          legend=c("WG prominent",
+#'                   "WS prominent", "Equal mean"),
+#'          fill=colors[2:4])
+#' 
+#'   y <- 1
+#'   for(row in rows){
+#'     x <- 1
+#'     for(col in cols){
+#'       x1 <- col
+#'       x2 <- col + dimension
+#'       y1 <- row
+#'       y2 <- row + dimension
+#'       rect(x1,y1,x2,y2, col=grid[y,x])
+#'       x <- x+1
+#'     }
+#'     y <- y+1
+#'   }
+#' 
+#' 
+#'   params <- c(nA, alpha, theta, p, lambda, omega)
+#'   var_names <- c('nA','alpha','theta','p','lambda','omega')
+#'   names(params) <- var_names
+#' 
+#' 
+#' 
+#'   title_string <- ""
+#' 
+#'   for(steady in attributes(grid)$held_steady)
+#'     title_string <- paste(title_string, steady, "=", params[[steady]], ";")
+#' 
+#'   title_string <- substr(title_string, 1, nchar(title_string) - 1)
+#' 
+#'   title(main=title_string, cex.main=0.9)
+#' }
