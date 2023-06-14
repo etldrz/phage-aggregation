@@ -86,39 +86,52 @@ bootstrap <- function(fitness_g, fitness_s, bt_size=10000, reverse=FALSE, gather
 
 #' means[,1] is the vector that is supposed to be larger than means[,2]
 #' NOT CURRENTLY RECORDING ANYTHING
+#' 
+#' Helper function meant to reduce the amount of upper-bound and lower-bound errors
+#' thrown by equilibriumSimulation. It cycles through the rows needing to be fixed,
+#' and searches for a possible substitute by randomly choosing a location from
+#' a collection that does not include previous swapping locations and locations
+#' that need to be swapped. If no viable swap is found, it moves on. If the
+#' percentage of bad locations is not <= perc_cap, then NULL is returned.
+#' means: a bt_sizex2 matrix; every location inside column 1 should be greater
+#'        than every location inside column 2. The row locations that this is not 
+#'        true for are attempted to be fixed.
+#' perc_cap: a user-specified maximum amount of failures that are allowed for.
 switcheroo <- function(means, perc_cap){
   
+  #' Vector of locations inside means where the second column is > than the first
   to_fix <- which(means[,1] < means[,2] | floatMatch(means[,1], means[,2]))
   left_to_fix <- length(to_fix)
   
-  perc <- (length(to_fix) / nrow(means))*100
+  perc <- (left_to_fix / nrow(means))*100
 
   if(perc < perc_cap | floatMatch(perc, perc_cap))
     return(means)
   
   
-  #' Stores every viable index that a to_fix swaps with to reduce bias
+  #' Stores every viable index that a to_fix index is swapped with
   already_used <- c()
   
   #' When true, the current viable percentage of rows is <= perc_cap and the
   #' updated means will return
   perc.allowed <- FALSE
   
-  
+  #' Random sample of to_fix indexes to decrease bias
   indexes <- sample(1:length(to_fix), length(to_fix))
 
   for(index in indexes){
+    #' The current means location trying to be fixed.
     overlap <- means[to_fix[index],]
     
-    #' To reduce bias, anything in to_fix is not counted as a viable source for
-    #' switching
+    #' To reduce bias, anything in to_fix or already used is not counted as a 
+    #' viable source for switching
     viable <- which(!1:nrow(means) %in% c(to_fix, already_used))
     
-    #' Records how many times a redraw happens (how many items from viable were used)
-    #' Not currently being used anywhere.
+    #' Records how many times a redraw happens (how many items from viable were 
+    #' used) Not currently being used anywhere.
     count <- 1 
     
-    while(!perc.allowed & length(viable) > 0){
+    while(length(viable) > 0){
 
       rand <- sample(viable, 1)
 
@@ -126,37 +139,30 @@ switcheroo <- function(means, perc_cap){
 
       if(means_rand[1] > overlap[2] & overlap[1] > means_rand[2]){
 
+        #' Swapping the first column of the two rows
         temp <- means_rand[1]
         means[rand,1] <- overlap[1]
         means[to_fix[index],1] <- temp
         
         already_used <- append(already_used, rand)
         left_to_fix <- left_to_fix - 1
-        
         perc <- (left_to_fix / nrow(means))*100
         perc.allowed <- perc < perc_cap | floatMatch(perc, perc_cap)
         
         if(perc.allowed)
           return(means)
-        
-        needed <- perc - perc_cap
-        if(needed < perc_cap){
-          print("needed logic triggered")
-          print(needed)
-          return(NULL)
-        }
-        
-        viable <- c()
-        next
+        else
+          break
       }
       
       #' If the above block does not trigger, then viable will be updated
-      #' to exclude 
+      #' to exclude the just-used random selection
       viable <- which(!viable %in% rand)
       count <- count + 1
     }
   }
   
+  #' If the algorithm does not generate a viable matrix
   return(NULL)
 }
 
