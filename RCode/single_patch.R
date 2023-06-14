@@ -88,6 +88,7 @@ bootstrap <- function(fitness_g, fitness_s, bt_size=10000, reverse=FALSE, gather
 #' means[,1] is the vector that is supposed to be larger than means[,2]
 #' NOT CURRENTLY RECORDING ANYTHING
 switcheroo <- function(means, perc_cap){
+  
   perc <- 0
   if(any(means[,1] < means[,2]))
     perc <- (length(which(means[,1] < means[,2])) / nrow(means))*100
@@ -96,50 +97,58 @@ switcheroo <- function(means, perc_cap){
     return(means)
   
   
-  
-  
   to_fix <- which(means[,1] < means[,2] | floatMatch(means[,1], means[,2]))
-
-  legal.perc <- FALSE
+  
+  # Stores every viable index that a to_fix switches with
+  already_used <- c()
+  
+  allowed.perc <- FALSE
   
   for(index in to_fix){
-    if(legal.perc)
-      return(means)
+    if(allowed.perc)
+      break
     
-    viable <- which(!1:nrow(means) %in% to_fix)
-
+    # To reduce bias, anything in to_fix is not counted as a viable source for
+    # switching
+    viable <- which(!1:nrow(means) %in% to_fix & already_used)
+    
     overlap <- means[index,]
     
-    count <- 1 # records how many times a redraw happens (how many items from viable were used)
-    while(!legal.perc & length(viable) > 0){
+    
+    count <- 1 #' records how many times a redraw happens (how many items from
+               #' viable were used)
+    while(!allowed.perc & length(viable) > 0 & length(to_fix) > 0){
       
       rand <- sample(viable, 1)
       means_rand <- means[rand,]
       
-      if((means_rand[1] > overlap[2] | floatMatch(means_rand[1], overlap[2])) &
-         (overlap[1] > means_rand[2] | floatMatch(overlap[1], means_rand[2]))){
+      if(means_rand[1] > overlap[2] & overlap[1] > means_rand[2]){
         
-        temp <- means[rand,1]
+        temp <- means_rand[1]
         means[rand,1] <- overlap[1]
         means[index,1] <- temp
         
+        alread_used <- append(alread_used, rand)
         
         to_fix <- to_fix[which(!to_fix %in% index)]
-        
-        # If count ever gets used, then it will get wrongfully incremented if this chunk triggers
+        #' If count ever gets used, then it will get wrongfully incremented 
+        #' if this chunk triggers
       }
       
-    
+      
       # Update viable to exclude the just-used value
       viable <- viable[which(!viable %in% rand)]
       
-
       curr_failure_perc <- (length(to_fix) / nrow(means)) * 100
-      legal.perc <- curr_failure_perc < perc_cap | floatMatch(curr_failure_perc, perc_cap)
+      
+      allowed.perc <- curr_failure_perc < perc_cap | 
+        floatMatch(curr_failure_perc, perc_cap)
       
       count <- count + 1
     }
   }
+  if(allowed.perc)
+    return(means)
   return(NULL)
 }
 
@@ -203,7 +212,7 @@ slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws){
   
   # Now solving g_slope*x + intercept_g = s_slope*x + intercept_s
   x <- (intercept_s - intercept_g) / (g_slope - s_slope)
-
+  
   return(x / nA) # Dividing nB by nA will return R*
 }
 
@@ -221,7 +230,7 @@ zeroHunter <- function(fitness){
                             min_ws = fitness$bt_ws_lower[i], max_x = fitness$x_upper[i], 
                             max_wg = fitness$bt_wg_upper[i], max_ws = fitness$bt_ws_upper[i])
   }
-
+  
   quant <- quantile(r_star, probs=c(0.025, 0.975))
   
   lower_quantile <- rep(quant[1], nrow(fitness))
@@ -282,7 +291,7 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
                    NA, NA, NA, NA,
                    rep(current_value, bt_size), rep(lambda, bt_size), 
                    rep(omega, bt_size), rep(p, bt_size), rep(prediction, bt_size))
-
+    
     # Bound legend:
     #             'x_lower', 'bt_ws_lower', 'bt_wg_lower', 
     #             'x_upper', 'bt_ws_upper', 'bt_wg_upper', 
@@ -290,7 +299,7 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
     #             'changing_value', 'lambda',
     #             'omega', 'p', 'prediction'
     
-
+    
     #' This will check if the matrix is viable by seeing if each found bootstraped
     #' value for fitness_g is either larger or lower than the found bootstrapped 
     #' value for fitness_s, depending on if reverse is false or true.
@@ -300,7 +309,7 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
     #' fitness_s with g,s being the ordering of the columns.
     matrix_or_bool <- bootstrap(fitness_g[,i], fitness_s[,i], bt_size=bt_size, 
                                 reverse=FALSE)
-
+    
     
     if(isFALSE(matrix_or_bool)){
       
@@ -316,7 +325,7 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
       else 
         stop(no_upper_found, ", ", current_value)
       
-     } 
+    } 
     else if(is.matrix(matrix_or_bool)){
       print(paste("Uppermost found at", i, "out of", total_treatments))
       
@@ -340,7 +349,7 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
         else if(isFALSE(matrix_or_bool) & y > 1){
           next
         }
-
+        
         # Place the lower entries into the bound vector
         bound[,1:3] <- cbind(rep(y, bt_size), #y is the found lower value of nB
                              matrix_or_bool[,2], matrix_or_bool[,1])
@@ -349,7 +358,7 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
         
         names(bound) <- legend
         
-
+        
         # These ifs deal with moving the values into a text file by checking to see
         # if the text file is empty or not
         if(file.info(plot_file)$size != 0){
@@ -389,7 +398,7 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
 baseSimulation <- function(nA, alpha, lambda, omega, theta, p, reps=500000){
   # Simulated fitnesses
   base <- c()
-
+  
   
   for(i in 0:nA){
     nB <- i
@@ -401,7 +410,7 @@ baseSimulation <- function(nA, alpha, lambda, omega, theta, p, reps=500000){
                               omega=omega, theta=theta, p=p, is_specialist=TRUE)
     fit_wG <- findLyseFitness(fit_wG, nA=nA, nB=nB, lambda=lambda, alpha=alpha, 
                               omega=omega, theta=theta, p=p, is_specialist=FALSE)
- 
+    
     base <- cbind(base, fit_wS, fit_wG)
   }
   
@@ -481,7 +490,7 @@ plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE, color
 #' reps: how many replicates are run.
 #' RETURN: the fitness dataframe, which can also be found at plot_file
 runChanging <- function(plot_file, changing_name, changing_step_size, change_start, changing_length=10,
-                         nA, alpha, theta, p, lambda, omega, save_base=FALSE, 
+                        nA, alpha, theta, p, lambda, omega, save_base=FALSE, 
                         base_file="", bt_size=10000, reps=500000, gather.overlap=FALSE) {
   
   if(save_base & !file.exists(base_file))
@@ -489,13 +498,13 @@ runChanging <- function(plot_file, changing_name, changing_step_size, change_sta
   
   # The changing value
   changing <- seq(from=change_start, by=changing_step_size, length.out=changing_length)
-
+  
   if(max(changing) > 1)
     stop("Illegal probability vector")
-
+  
   # Where the base data is stored for access by equilibriumSimulation
   base <- c()
- 
+  
   for(curr in changing) {
     
     # Sets the current changing value
@@ -506,7 +515,7 @@ runChanging <- function(plot_file, changing_name, changing_step_size, change_sta
     else 
       stop("Invalid changing name")
     
-
+    
     for(l in lambda){
       for(o in omega){
         for(per in p){
@@ -586,23 +595,23 @@ safeRunChanging <- function(safety=1.5e6, reps=5e5, ...){
 
 gatherOverlap <- function(nA, alpha, theta, p, lambda, omega,
                           bt_size=10000, reps=500000){
-
+  
   s_over <- c()
   g_over <- c()
-
+  
   base <- baseSimulation(nA=nA, alpha=alpha, theta=theta,
                          p=p, lambda=lambda, omega=omega, reps=reps)
-
+  
   base_s <- base[,seq(from=1, to=ncol(base), by=2)]
   base_g <- base[,seq(from=2, to=ncol(base), by=2)]
-
-
+  
+  
   for(i in 1:ncol(base_s)){
     boot <- bootstrap(base_g[,i], base_s[,i], gather.overlap=TRUE)
     s_over[i] <- boot[1]
     g_over[i] <- boot[2]
   }
-
+  
   return(cbind(s_over, g_over))
 }
 
@@ -612,30 +621,30 @@ gatherOverlap <- function(nA, alpha, theta, p, lambda, omega,
 #' Returns a dataframe easy to use for plotting, with each row representing
 #' a separate found value for the current changing_value, lambda, and omega.
 plotEquilibriumSimulation <- function(fitness){
-
+  
   plotting <- c()
   changing_value <- as.factor(fitness$changing_value)
   lambda <- as.factor(fitness$lambda)
   omega <- as.factor(fitness$omega)
-
-
+  
+  
   changing_value_levels <- levels(changing_value)
   lambda_levels <- levels(lambda)
   omega_levels <- levels(omega)
-
+  
   for(curr in changing_value_levels){
     for(l in lambda_levels){
       for(o in omega_levels){
-
+        
         plotting <- rbind(plotting, fitness[which(fitness$changing_value == curr &
                                                     fitness$lambda == l &
                                                     fitness$omega == o)[1],])
       }
     }
   }
-
+  
   # have this generate a plot and not just return
-
+  
   return(plotting)
 }
 
