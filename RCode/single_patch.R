@@ -116,7 +116,7 @@ switcheroo <- function(means, perc_cap){
   #' updated means will return
   perc.allowed <- FALSE
   
-  #' Random sample of to_fix indexes to decrease bias
+  #' Random sample of to_fix indexes taken to decrease bias
   indexes <- sample(1:length(to_fix), length(to_fix))
 
   for(index in indexes){
