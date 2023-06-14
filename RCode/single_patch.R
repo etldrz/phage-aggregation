@@ -1,4 +1,3 @@
-
 # TODO: reformat this comment block.
 #       It will until the the fourth changing point (alpha = 0.07) at which point it will fail to collect any rows from the fitness df 
 #       send to zeroHunter.
@@ -89,66 +88,75 @@ bootstrap <- function(fitness_g, fitness_s, bt_size=10000, reverse=FALSE, gather
 #' NOT CURRENTLY RECORDING ANYTHING
 switcheroo <- function(means, perc_cap){
   
-  perc <- 0
-  if(any(means[,1] < means[,2]))
-    perc <- (length(which(means[,1] < means[,2])) / nrow(means))*100
+  to_fix <- which(means[,1] < means[,2] | floatMatch(means[,1], means[,2]))
+  left_to_fix <- length(to_fix)
   
+  perc <- (length(to_fix) / nrow(means))*100
+
   if(perc < perc_cap | floatMatch(perc, perc_cap))
     return(means)
   
   
-  to_fix <- which(means[,1] < means[,2] | floatMatch(means[,1], means[,2]))
-  
-  # Stores every viable index that a to_fix switches with
+  #' Stores every viable index that a to_fix swaps with to reduce bias
   already_used <- c()
   
-  allowed.perc <- FALSE
+  #' When true, the current viable percentage of rows is <= perc_cap and the
+  #' updated means will return
+  perc.allowed <- FALSE
   
-  for(index in to_fix){
-    if(allowed.perc)
-      break
+  
+  indexes <- sample(1:length(to_fix), length(to_fix))
+
+  for(index in indexes){
+    overlap <- means[to_fix[index],]
     
-    # To reduce bias, anything in to_fix is not counted as a viable source for
-    # switching
-    viable <- which(!1:nrow(means) %in% to_fix & already_used)
+    #' To reduce bias, anything in to_fix is not counted as a viable source for
+    #' switching
+    viable <- which(!1:nrow(means) %in% c(to_fix, already_used))
     
-    overlap <- means[index,]
+    #' Records how many times a redraw happens (how many items from viable were used)
+    #' Not currently being used anywhere.
+    count <- 1 
     
-    
-    count <- 1 #' records how many times a redraw happens (how many items from
-               #' viable were used)
-    while(!allowed.perc & length(viable) > 0 & length(to_fix) > 0){
-      
+    while(!perc.allowed & length(viable) > 0){
+
       rand <- sample(viable, 1)
+
       means_rand <- means[rand,]
-      
+
       if(means_rand[1] > overlap[2] & overlap[1] > means_rand[2]){
-        
+
         temp <- means_rand[1]
         means[rand,1] <- overlap[1]
-        means[index,1] <- temp
+        means[to_fix[index],1] <- temp
         
-        alread_used <- append(alread_used, rand)
+        already_used <- append(already_used, rand)
+        left_to_fix <- left_to_fix - 1
         
-        to_fix <- to_fix[which(!to_fix %in% index)]
-        #' If count ever gets used, then it will get wrongfully incremented 
-        #' if this chunk triggers
+        perc <- (left_to_fix / nrow(means))*100
+        perc.allowed <- perc < perc_cap | floatMatch(perc, perc_cap)
+        
+        if(perc.allowed)
+          return(means)
+        
+        needed <- perc - perc_cap
+        if(needed < perc_cap){
+          print("needed logic triggered")
+          print(needed)
+          return(NULL)
+        }
+        
+        viable <- c()
+        next
       }
       
-      
-      # Update viable to exclude the just-used value
-      viable <- viable[which(!viable %in% rand)]
-      
-      curr_failure_perc <- (length(to_fix) / nrow(means)) * 100
-      
-      allowed.perc <- curr_failure_perc < perc_cap | 
-        floatMatch(curr_failure_perc, perc_cap)
-      
+      #' If the above block does not trigger, then viable will be updated
+      #' to exclude 
+      viable <- which(!viable %in% rand)
       count <- count + 1
     }
   }
-  if(allowed.perc)
-    return(means)
+  
   return(NULL)
 }
 
