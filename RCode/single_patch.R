@@ -1,30 +1,7 @@
-# TODO: reformat this comment block.
-#       It will until the the fourth changing point (alpha = 0.07) at which point it will fail to collect any rows from the fitness df 
-#       send to zeroHunter.
-
-
-
-###The main function, runChanging, calls equilibriumSimulation 
-###length(changing_variable)*length(omega)*length(lambda) times. Each 
-###time it is called, it finds the highest point where every entry of a bootstrapped 
-###fitness vector of the generalist is higher than each entry of a bootstrapped 
-###fitness vector of the specialist. The simulation then reverses and finds the lowest 
-###point where each entry of a bootstrapped fitness vector of the specialist is 
-###higher than that of the generalist. These four fitness vectors are recorded. 
-###The positions of the found vectors (their x values) are recorded as well. 
-###Once this loop finishes, the equilibrium point is found by determining 
-###the slopes between both pairs of fitness vectors and solving for when the 
-###slope of the specialist equals the 
-###slope of the generalist. The mean and a 95% confidence interval is taken and 
-###recorded for each value in alpha_change, this is what is plotted, along with
-###the particular value's mathematical prediction.
-
-
-
 
 #' Helper function used throughout
 #' For verifying floating numbers
-floatMatch <- function(x, y){
+floatMatch <- function(x, y) {
   return(abs(x - y) < 1e-6)
 }
 
@@ -38,8 +15,8 @@ floatMatch <- function(x, y){
 #' indicates to equilibriumSimulation that the returned bootstrapped vectors are good,
 #' and it will start to go backwards, to find where all(g_means < s_means). reverse
 #' will be true in this case.
-bootstrap <- function(fitness_g, fitness_s, bt_size=10000, reverse=FALSE, allowed_overlap=1,
-                      gather.overlap=FALSE) {
+bootstrap <- function(fitness_g, fitness_s, bt_size=1e4, reverse=FALSE,
+                      allowed_overlap=0.1, gather.overlap=FALSE) {
   
   g_means <- rep(0, bt_size)
   s_means <- rep(0, bt_size)
@@ -82,13 +59,15 @@ bootstrap <- function(fitness_g, fitness_s, bt_size=10000, reverse=FALSE, allowe
   else return(NULL)
 }
 
-
+#' This attempts to swap overlapping locations with non-overlapping locations 
+#' from the matrix so that there is no overlap at all. The first column is 
+#' expected to be larger than the second; locations where the second is larger
+#' than the first is considered to be overlap.
 swap <- function(means){
   
   # Vector of locations inside means where the second column is > than the first
   to_fix <- which(means[,1] <= means[,2])
   left_to_fix <- length(to_fix)
-
 
   # This is true when perc == 0
   perc.allowed <- FALSE
@@ -97,10 +76,11 @@ swap <- function(means){
     # The current means location trying to be fixed.
     overlap <- means[index,]
     
+    # Locations that could potentially swap with the current overlap row
     viable <- which(!1:nrow(means) %in% to_fix)
     
-    #' Records how many times a redraw happens (how many items from viable were 
-    #' used) Not currently being used anywhere.
+    # Records how many times a redraw happens (how many items from viable were 
+    # used) Not currently being used anywhere.
     count <- 1 
     
     while(length(viable) > 0){
@@ -184,7 +164,7 @@ findLyseFitness <- function(outcomes, nA, nB, lambda, alpha, omega, theta,
 #' Helper function used by zeroHunter
 #' Finds the point where wG = wS and return that point by solving the 
 #' linear slope equations for both.
-slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws){
+slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws) {
   
   g_slope <- (max_wg - min_wg) / (max_x - min_x)
   s_slope <- (max_ws - min_ws) / (max_x - min_x)
@@ -205,7 +185,7 @@ slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws){
 #' the helper function slopeEqual. It will then find the upper quantile, the 
 #' lower quantile, and the mean of the found R* and return all four of these 
 #' vectors as a matrix.
-zeroHunter <- function(fitness){
+zeroHunter <- function(fitness) {
   r_star <- rep(NA, nrow(fitness))
   
   for(i in 1:nrow(fitness)){
@@ -378,7 +358,7 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
 #' RETURN: a matrix where the first column is the fitness vector for W_S and the
 #'  second is a fitness_vector for W_G
 baseSimulation <- function(nA, alpha, lambda, omega, theta, p, inc_past=0.15, 
-                           reps=5e5){
+                           reps=5e5) {
   # Simulated fitnesses
   base <- c()
   
@@ -405,7 +385,8 @@ baseSimulation <- function(nA, alpha, lambda, omega, theta, p, inc_past=0.15,
 #' Standalone function
 #' Generates a nA by 2 matrix which contains the predictions for W_s and W_g of 
 #' the base simulation.
-baseSimPrediction <- function(nA, alpha, theta, p, lambda, omega, inc_past=0.25){
+baseSimPrediction <- function(nA, alpha, theta, p, lambda, omega, 
+                              inc_past=0.25) {
   
   nB <- 0:(nA + as.integer(nA*inc_past))
 
@@ -430,7 +411,7 @@ baseSimPrediction <- function(nA, alpha, theta, p, lambda, omega, inc_past=0.25)
 #' Standalone function that plots the results generated by baseSimulation
 #' and baseSimPrediction
 plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE, 
-                               colors=c('coral4', 'darkorchid4')){
+                               colors=c('coral4', 'darkorchid4')) {
   
   curr_wS <- colMeans(base[,seq(from=1, to=ncol(base), by=2)])
   curr_wG <- colMeans(base[,seq(from=2, to=ncol(base), by=2)])
@@ -474,13 +455,11 @@ plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE,
 #' bt_size: how many times the fitness vectors from equilibriumSimulation are bootstrapped
 #' reps: how many replicates are run.
 #' RETURN: the fitness dataframe, which can also be found at plot_file
-runChanging <- function(plot_file, changing_name, changing_step_size, change_start, changing_length=10,
-                        nA, alpha, theta, p, lambda, omega, inc_past=0.25, save_base=FALSE, 
-                        base_file="", bt_size=10000, reps=500000, gather.overlap=FALSE) {
-  
-  if(save_base & !file.exists(base_file))
-    stop("Use a proper file path for the base")
-  
+runChanging <- function(plot_file, changing_name, changing_step_size, 
+                        change_start, changing_length=10, nA, alpha, theta, p, 
+                        lambda, omega, inc_past=0.15, bt_size=1e4, 
+                        reps=5e5) {
+
   # The changing value
   changing <- seq(from=change_start, by=changing_step_size, length.out=changing_length)
   
@@ -517,10 +496,6 @@ runChanging <- function(plot_file, changing_name, changing_step_size, change_sta
         }
       }
     }
-    
-    # Currently, the base is not well organized and would be silly to save.
-    if(save_base)
-      write.table(base, file=base_file)
   }
   
   fitness <- read.table(file=plot_file, sep=",", header=TRUE)
@@ -550,7 +525,7 @@ runChanging <- function(plot_file, changing_name, changing_step_size, change_sta
 } #end of runChanging
 
 
-safeRunChanging <- function(safety=1.5e6, reps=5e5, ...){
+safeRunChanging <- function(safety=1.5e6, reps=5e5, ...) {
   result <- NA
   safety <- reps*2
   while(reps != safety){
@@ -579,7 +554,7 @@ safeRunChanging <- function(safety=1.5e6, reps=5e5, ...){
 
 
 gatherOverlap <- function(nA, alpha, theta, p, lambda, omega,
-                          bt_size=1e4, reps=5e5){
+                          bt_size=1e4, reps=5e5) {
   
   s_over <- c()
   g_over <- c()
@@ -605,7 +580,7 @@ gatherOverlap <- function(nA, alpha, theta, p, lambda, omega,
 #' TODO: make it generate a ggplot with confidence intervals
 #' Returns a dataframe easy to use for plotting, with each row representing
 #' a separate found value for the current changing_value, lambda, and omega.
-plotEquilibriumSimulation <- function(fitness){
+plotEquilibriumSimulation <- function(fitness) {
   
   plotting <- c()
   changing_value <- as.factor(fitness$changing_value)
@@ -632,3 +607,28 @@ plotEquilibriumSimulation <- function(fitness){
   
   return(plotting)
 }
+
+#' Technical overview
+#' A single fitness vector is has a length of 500,000 and is created using sample().
+#' Each entry on the vector represents the fitness of a unique phage. If the phage dies, 
+#' it has a fitness of 0, if it leaves the aggregation it has a fitness of 1, 
+#' and if it experiences a lyse event, it has a fitness determined by the function findLyseFitness,
+#' which will calculate the fitness of the children and grandchildren of the phage, should it 
+#' burst inside the aggregation. If the phage does not lyse inside the aggregation, then the fitness
+#' of the phage is simply equal to the burst size of the infected host. To test our hypotheses, 
+#' the net burst size of host B, nB, ranges from 0 to the net burst size of host A, nA, plus nA * .15.
+#' Once a suitable range of fitness-vectors have been found for various parameters, the fitness vectors are
+#' bootstrapped by taking the mean of a fitness vector that has had sample used on it once again. This is done 10,000
+#' times for each fitness vector.
+#' 
+#' We consider a grouping of fitness vectors for both specialists and generalists where nB is the only changing value
+#' to be a set. The ratio nB/nA is found for each set by calculating the numerical point where W_S = W_G and dividing 
+#' this by nA. The fitness lines are assumed to be linear between close enough points; the upper point is the first
+#' bootstrapped specialist/generalist fitness vector pair where each value for the generalist is greater than
+#' its opposing specialist value. The opposite is true for the lower point. If the amount of unwanted overlap is less than 
+#' or equal to 1%, then an algorithm is called that randomly cycles through the vectors and tries to swap points
+#' so that the found overlap is 0%. If this is a success, then the swapped-up pair of vectors will be used.
+#' 
+#' Since linearity is assumed, the linear slope equation will be used to find the value of nB for when the specialist
+#' fitness equals the generalist fitness, and the mean of the resulting vector is divided by nA to yield R*. 95% quantiles
+#' are generated before the mean is taken.
