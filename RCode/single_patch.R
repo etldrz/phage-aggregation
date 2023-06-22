@@ -16,7 +16,7 @@ floatMatch <- function(x, y) {
 #' and it will start to go backwards, to find where all(g_means < s_means). reverse
 #' will be true in this case.
 bootstrap <- function(fitness_g, fitness_s, bt_size=1e4, reverse=FALSE,
-                      allowed_overlap=0.1, gather.overlap=FALSE) {
+                      allowed_overlap=0.01, gather.overlap=FALSE) {
   
   g_means <- rep(0, bt_size)
   s_means <- rep(0, bt_size)
@@ -45,10 +45,10 @@ bootstrap <- function(fitness_g, fitness_s, bt_size=1e4, reverse=FALSE,
   
   # reverse determines the order of the comb_means matrix, it it is true
   # then s_means is first and g_means is first if it is true.
-  curr_overlap <- (length(which(s_means > g_means)) / bt_size)*100
+  curr_overlap <- (length(which(s_means > g_means)) / bt_size)
   comb_means <- cbind(g_means, s_means)
   if(reverse){
-    curr_overlap <- (length(which(g_means > s_means)) / bt_size)*100
+    curr_overlap <- (length(which(g_means > s_means)) / bt_size)
     comb_means <- cbind(s_means, g_means)
   }
   
@@ -70,7 +70,7 @@ swap <- function(means){
   left_to_fix <- length(to_fix)
 
   # This is true when perc == 0
-  perc.allowed <- FALSE
+  prop.allowed <- FALSE
   
   for(index in to_fix){
     # The current means location trying to be fixed.
@@ -97,9 +97,9 @@ swap <- function(means){
         means[to_fix[index],1] <- temp
         
         left_to_fix <- left_to_fix - 1
-        perc.allowed <- left_to_fix == 0
+        prop.allowed <- left_to_fix == 0
         
-        if(perc.allowed){
+        if(prop.allowed){
           attributes(means)$swap_count <- count
           return(means)
         }
@@ -109,7 +109,7 @@ swap <- function(means){
       
       # If the above block does not trigger, then viable will be updated
       # to exclude the just-used random selection
-      viable <- which(!viable %in% rand)
+      viable <- viable[which(!viable %in% rand)]
       count <- count + 1
     }
   }
@@ -359,6 +359,39 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
 } #end of equilibriumSimulation
 
 
+#' Standalone function to be used with the output of runChanging
+#' TODO: make it generate a ggplot with confidence intervals
+#' Returns a dataframe easy to use for plotting, with each row representing
+#' a separate found value for the current changing_value, lambda, and omega.
+plotEquilibriumSimulation <- function(fitness) {
+  
+  plotting <- c()
+  changing_value <- as.factor(fitness$changing_value)
+  lambda <- as.factor(fitness$lambda)
+  omega <- as.factor(fitness$omega)
+  
+  
+  changing_value_levels <- levels(changing_value)
+  lambda_levels <- levels(lambda)
+  omega_levels <- levels(omega)
+  
+  for(curr in changing_value_levels){
+    for(l in lambda_levels){
+      for(o in omega_levels){
+        
+        plotting <- rbind(plotting, fitness[which(fitness$changing_value == curr &
+                                                    fitness$lambda == l &
+                                                    fitness$omega == o)[1],])
+      }
+    }
+  }
+  
+  # have this generate a plot and not just return
+  
+  return(plotting)
+}
+
+
 #' Helper function used in runChanging AND standalone function
 #' Generates two vectors representing W_S and W_G for the given parameters.
 #' Used by equilibrium simulation.
@@ -560,60 +593,28 @@ safeRunChanging <- function(safety=1.5e6, reps=5e5, ...) {
 }
 
 
-gatherOverlap <- function(nA, alpha, theta, p, lambda, omega,
-                          bt_size=1e4, reps=5e5) {
+
+basicBootstrap <- function(g, s){
+  bt_size <- 1e4
   
-  s_over <- c()
-  g_over <- c()
+  size <- length(g)
   
-  base <- baseSimulation(nA=nA, alpha=alpha, theta=theta,
-                         p=p, lambda=lambda, omega=omega, reps=reps)
+  dfG <- as.data.frame(table(g))
+  uniqueG <- as.numeric(levels(dfG[,1]))
+  freqG <- dfG[,2] / size
   
-  base_s <- base[,seq(from=1, to=ncol(base), by=2)]
-  base_g <- base[,seq(from=2, to=ncol(base), by=2)]
+  dfS <- as.data.frame(table(s))
+  uniqueS <- as.numeric(levels(dfS[,1]))
+  freqS <- dfS[,2] / size
+  
+  g_means <- replicate(bt_size, mean(sample(uniqueG, size, replace=T, prob=freqG)))
+  s_means <- replicate(bt_size, mean(sample(uniqueS, size, replace=T, prob=freqS)))
   
   
-  for(i in 1:ncol(base_s)){
-    boot <- bootstrap(base_g[,i], base_s[,i], gather.overlap=TRUE)
-    s_over[i] <- boot[1]
-    g_over[i] <- boot[2]
-  }
-  
-  return(cbind(s_over, g_over))
+  return(cbind(s_means, g_means))
 }
 
 
-#' Standalone function to be used with the output of runChanging
-#' TODO: make it generate a ggplot with confidence intervals
-#' Returns a dataframe easy to use for plotting, with each row representing
-#' a separate found value for the current changing_value, lambda, and omega.
-plotEquilibriumSimulation <- function(fitness) {
-  
-  plotting <- c()
-  changing_value <- as.factor(fitness$changing_value)
-  lambda <- as.factor(fitness$lambda)
-  omega <- as.factor(fitness$omega)
-  
-  
-  changing_value_levels <- levels(changing_value)
-  lambda_levels <- levels(lambda)
-  omega_levels <- levels(omega)
-  
-  for(curr in changing_value_levels){
-    for(l in lambda_levels){
-      for(o in omega_levels){
-        
-        plotting <- rbind(plotting, fitness[which(fitness$changing_value == curr &
-                                                    fitness$lambda == l &
-                                                    fitness$omega == o)[1],])
-      }
-    }
-  }
-  
-  # have this generate a plot and not just return
-  
-  return(plotting)
-}
 
 #' Technical overview
 #' A single fitness vector is has a length of 500,000 and is created using sample().
