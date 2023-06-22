@@ -27,7 +27,7 @@ basicBootstrap <- function(g, s){
   s_means <- replicate(bt_size, mean(sample(uniqueS, size, replace=T, prob=freqS)))
   
   
-  return(cbind(g_means, s_means))
+  return(cbind(s_means, g_means))
 }
 
 cores <- detectCores()

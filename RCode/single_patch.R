@@ -99,8 +99,10 @@ swap <- function(means){
         left_to_fix <- left_to_fix - 1
         perc.allowed <- left_to_fix == 0
         
-        if(perc.allowed)
+        if(perc.allowed){
+          attributes(means)$swap_count <- count
           return(means)
+        }
         else
           break
       }
@@ -290,6 +292,9 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
       }
     } 
     else if(is.matrix(bootstrapped)){
+      
+      attributes(bound)$upper_swap_count <- attributes(bootstrapped)$swap_count
+      
       print(paste("Uppermost found at", i, "out of", total_treatments))
       
       # Using bound to record the bootstrapped viable upper-limit fitness vectors,
@@ -312,6 +317,8 @@ equilibriumSimulation <- function(plot_file, nA, omega, alpha, theta, p, lambda,
         else if(is.null(bootstrapped) & y > min(nB_vec)){
           next
         }
+        
+        attributes(bound)$lower_swap_count <- attributes(bootstrapped)$swap_count
         
         # Place the lower entries into the bound vector
         bound[,1:3] <- cbind(rep(y, bt_size), #y is the found lower value of nB
