@@ -20,6 +20,9 @@ swap <- function(means){
   to_fix <- which(means[,1] <= means[,2])
   left_to_fix <- length(to_fix)
 
+  if(left_to_fix == 0) return(means)
+  
+  
   # This is true when perc == 0
   prop.allowed <- FALSE
   
@@ -249,13 +252,16 @@ basicBootstrap <- function(g, s){
 preprocessed <- function(files, changing_name, changing) {
   
   exist <- which(sapply(files, file.exists))
-  if(length(exist) != 0) stop(exist)
+  if(length(exist) != 0) 
+    stop(files[1:length(files)[!1:length(files) %in% exist]])
+  if(length(files) != length(changing))
+    stop("mismatch")
   
-  
-  
+  bounds <- mapply(rStar, files, changing, changing_name)
+  return(bounds)
 }
 
-rStar <- function(file, current_changing) {
+rStar <- function(file, current_changing, changing_name) {
   boot <- read.table(file, header=TRUE, sep=",")
   
   g <- boot[,seq(2, ncol(boot), 2)]
@@ -274,31 +280,48 @@ rStar <- function(file, current_changing) {
   }
   
   
-  lower_boot <- NULL
-  upper_boot <- NULL
-  r_star <- NULL
-  done <- FALSE
-  
-  while(!done){
-    if(length(viable_upper) == 0){
-      message(paste("No upper found for ", file, "\n",
-                    "Setting R* equal to 1", sep=""))
-      r_star <- 1
-    } else if(length(viable_lower) == 0){
+  lower_bound <- NULL
+  upper_bound <- NULL
+  r_star <- NA
+
+  while(is.null(lower_bound)){
+    if(length(viable_lower) == 0){
       message(paste("No lower found for ", file, "\n",
                     "Setting R* equal to 0", sep=""))
       r_star <- 0
     }
-    
-    curr_upper <- min(viable_upper)
     curr_lower <- max(viable_lower)
-    
-    lower_
-    
+    lower_bound <- swap(cbind(s[,curr_lower], g[,curr_lower]))
+    viable_lower <- viable_lower[!viable_lower %in% curr_lower]
   }
   
+  while(is.null(upper_bound)){
+    if(length(viable_upper) == 0){
+      message(paste("No upper found for ", file, "\n",
+                    "Setting R* equal to 1", sep=""))
+      r_star <- 1
+    }
+    curr_upper <- min(viable_upper)
+    upper_bound <- swap(cbind(g[,curr_upper], s[,curr_upper]))
+    viable_upper <- viable_upper[!viable_upper %in% curr_upper]
+  }
   
+  if(is.na(r_star)){
+    r_stars <- mapply(slopeEqual, lower_bound, g[,lower_bound], s[,lower_bound],
+                      upper_bound, g[,upper_bound], s[,upper_bound])
+    r_star <- mean(r_stars)
+  }
+  
+  bounds <- matrix(nrow=nrow(boot), ncol=5)
+  names(bounds) <- c("lower", "lower.boot.s", "lower.boot.g", "upper", 
+                     "upper.boot.s", "upper.boot.g", changing_name)
+  bounds <- cbind(lower_bound, s[,lower_bound], g[,lower_bound], upper_bound,
+                  s[,upper_bound], g[,upper_bound], current_changing)
+  
+  return(bounds)
 }
+
+
 
 #' Technical overview
 #' A single fitness vector is has a length of 500,000 and is created using sample().
