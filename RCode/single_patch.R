@@ -139,8 +139,6 @@ slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws) {
 }
 
 
-
-
 #' Helper function used in runChanging AND standalone function
 #' Generates two vectors representing W_S and W_G for the given parameters.
 #' Used by equilibrium simulation.
@@ -223,9 +221,6 @@ plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE,
 }
 
 
-
-
-
 basicBootstrap <- function(g, s){
   bt_size <- 1e4
   
@@ -247,9 +242,6 @@ basicBootstrap <- function(g, s){
 }
 
 
-
-
-
 preprocessed <- function(files, changing_name, changing) {
   
   exist <- which(sapply(files, file.exists))
@@ -261,6 +253,7 @@ preprocessed <- function(files, changing_name, changing) {
   bounds <- mapply(rStar, files, changing, changing_name)
   return(bounds)
 }
+
 
 rStar <- function(file, current_changing, changing_name) {
   boot <- read.table(file, header=TRUE, sep=",")
