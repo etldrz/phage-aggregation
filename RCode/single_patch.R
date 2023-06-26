@@ -1,5 +1,9 @@
 
+nA <- 30
+inc_past <- 0.15
+reps <- 5e5
 prop_allowed <- 0.01
+
 
 
 #' Helper function used throughout
@@ -7,7 +11,6 @@ prop_allowed <- 0.01
 floatMatch <- function(x, y) {
   return(abs(x - y) < 1e-6)
 }
-
 
 
 #' This attempts to swap overlapping locations with non-overlapping locations 
@@ -75,8 +78,8 @@ swap <- function(means){
 #' Helper function used by baseSimulation
 #' This will be called to deal with phage interactions with hosts, in order to
 #' calculate the fitnesses of children and grandchildren.
-findLyseFitness <- function(outcomes, nA, nB, lambda, alpha, omega, theta, 
-                            p, is_specialist) {
+findLyseFitness <- function(outcomes, nB, alpha, theta, p, lambda, omega, 
+                            is_specialist) {
   # found_theta represents a phage interacting with a host
   found_theta <- which(outcomes %in% c(2, 3))
   
@@ -143,8 +146,7 @@ slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws) {
 #' Used by equilibrium simulation.
 #' RETURN: a matrix where the first column is the fitness vector for W_S and the
 #'  second is a fitness_vector for W_G
-baseSimulation <- function(nA, alpha, lambda, omega, theta, p, inc_past=0.15, 
-                           reps=5e5) {
+baseSimulation <- function(alpha, theta, p, lambda, omega) {
   # Simulated fitnesses
   base <- c()
   
@@ -156,7 +158,7 @@ baseSimulation <- function(nA, alpha, lambda, omega, theta, p, inc_past=0.15,
     fit_wS <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
     fit_wG <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
     
-    fit_wS <- findLyseFitness(fit_wS, nA=nA, nB=nB, lambda=lambda, alpha=alpha, 
+    fit_wS <- findLyseFitness(fit_wS, nB=nB, lambda=lambda, alpha=alpha, 
                               omega=omega, theta=theta, p=p, is_specialist=TRUE)
     fit_wG <- findLyseFitness(fit_wG, nA=nA, nB=nB, lambda=lambda, alpha=alpha, 
                               omega=omega, theta=theta, p=p, is_specialist=FALSE)
@@ -171,8 +173,7 @@ baseSimulation <- function(nA, alpha, lambda, omega, theta, p, inc_past=0.15,
 #' Standalone function
 #' Generates a nA by 2 matrix which contains the predictions for W_s and W_g of 
 #' the base simulation.
-baseSimPrediction <- function(nA, alpha, theta, p, lambda, omega, 
-                              inc_past=0.15) {
+baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
   
   nB <- 0:(nA + as.integer(nA*inc_past))
 
