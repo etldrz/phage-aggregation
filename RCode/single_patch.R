@@ -1,13 +1,13 @@
-
-nA <- 30
-inc_past <- 0.15
-reps <- 5e5
-prop_allowed <- 0.01
+nA <- 30 # net burst size of host A
+inc_past <- 0.15 # how far past nA nB goes (limites failures)
+reps <- 5e5 # how large each fitness vector is
+bt_size <- 1e4 # how many times each fitness vector is bootstrapped
+prop_allowed <- 0.01 # proportion of allowed overlap between bootstrapped vectors
 
 
 
 #' Helper function used throughout
-#' For verifying floating numbers
+#' Used to verify floating numbers
 floatMatch <- function(x, y) {
   return(abs(x - y) < 1e-6)
 }
@@ -17,61 +17,53 @@ floatMatch <- function(x, y) {
 #' from the matrix so that there is no overlap at all. The first column is 
 #' expected to be larger than the second; locations where the second is larger
 #' than the first is considered to be overlap.
-swap <- function(means){
+swap <- function(data){
   
-  # Vector of locations inside means where the second column is > than the first
-  to_fix <- which(means[,1] <= means[,2])
+  # Vector of locations inside data where the second column is > than the first
+  to_fix <- which(data[,1] <= data[,2])
   left_to_fix <- length(to_fix)
-
-  if(left_to_fix == 0) return(means)
+  cat("amount to fix ", left_to_fix, "\n")
   
+  if(left_to_fix == 0) return(data)
   
-  # This is true when perc == 0
-  prop.allowed <- FALSE
   
   for(index in to_fix){
-    # The current means location trying to be fixed.
-    overlap <- means[index,]
+    # The current data location trying to be fixed.
+    overlap <- data[index,]
     
     # Locations that could potentially swap with the current overlap row
-    viable <- which(!1:nrow(means) %in% to_fix)
-    
-    # Records how many times a redraw happens (how many items from viable were 
-    # used) Not currently being used anywhere.
+    viable <- which(!1:nrow(data) %in% to_fix)
+
+    # Records how many times a redraw happens
     count <- 1 
     
     while(length(viable) > 0){
       
       rand <- sample(viable, 1)
       
-      curr_viable <- means[rand,]
+      curr_viable <- data[rand,]
       
       if(curr_viable[1] > overlap[2] & overlap[1] > curr_viable[2]){
         
         # Swapping the first column of the two rows
         temp <- curr_viable[1]
-        means[rand,1] <- overlap[1]
-        means[to_fix[index],1] <- temp
+        data[rand,1] <- overlap[1]
+        data[to_fix[index],1] <- temp
         
         left_to_fix <- left_to_fix - 1
-        prop.allowed <- left_to_fix == 0
-        
-        if(prop.allowed){
-          attributes(means)$swap_count <- count
-          return(means)
-        }
-        else
+
+        if(left_to_fix > 0){
           break
+        }
+        return(data)
       }
-      
       # If the above block does not trigger, then viable will be updated
       # to exclude the just-used random selection
       viable <- viable[which(!viable %in% rand)]
       count <- count + 1
     }
   }
-  # If the algorithm does not generate a viable matrix
-  return(NULL)
+  return(NULL) # If the algorithm does not generate a viable matrix
 }
 
 
@@ -158,7 +150,7 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
     
     fit_wS <- findLyseFitness(fit_wS, nB=nB, lambda=lambda, alpha=alpha, 
                               omega=omega, theta=theta, p=p, is_specialist=TRUE)
-    fit_wG <- findLyseFitness(fit_wG, nA=nA, nB=nB, lambda=lambda, alpha=alpha, 
+    fit_wG <- findLyseFitness(fit_wG, nB=nB, lambda=lambda, alpha=alpha, 
                               omega=omega, theta=theta, p=p, is_specialist=FALSE)
     
     base <- cbind(base, fit_wS, fit_wG)
@@ -174,7 +166,7 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
 baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
   
   nB <- 0:(nA + as.integer(nA*inc_past))
-
+  
   prediction_wS <- alpha/(alpha + lambda + theta*p) + 
     theta*p/(alpha + lambda + theta*p)*((1 - omega)*nA + 
                                           omega*(nA + 1)*(alpha/(alpha + lambda + theta*p) + 
@@ -187,9 +179,13 @@ baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
     theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*nB + 
                                               omega*(nB + 1)*(alpha/(alpha + lambda + theta) + 
                                                                 theta/(alpha + lambda + theta) * (p * nA + (1 - p) * nB)))
+  data <- cbind(prediction_wS, prediction_wG)
   
-  
-  return(cbind(prediction_wS, prediction_wG))
+  plot(x=nB, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
+  lines(x=nB, y=data[,1], col='darkblue', lwd=1.5)
+  legend("topleft", legend=c("fitness.s", "fitness.g"), lty=1, 
+         col=c('darkblue', 'firebrick'), lwd=1.5)
+  return(data)
 }
 
 
@@ -200,7 +196,7 @@ plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE,
   
   curr_wS <- colMeans(base[,seq(from=1, to=ncol(base), by=2)])
   curr_wG <- colMeans(base[,seq(from=2, to=ncol(base), by=2)])
-
+  
   y_min <- min(curr_wG)
   y_max <- max(curr_wG)
   
@@ -213,17 +209,14 @@ plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE,
   points(y=curr_wG, x=1:length(curr_wG), col=colors[2])
   
   if(with.prediction){
-    if(is.na(prediction))
-      stop("Needs a prediction matrix")
     lines(y=prediction[1],x=1:length(curr_wS),col=colors[1], lwd=1.5)
     lines(y=prediction[2],x=1:length(curr_wG), col=colors[2], lwd=1.5)
   }
 }
 
+#' Generates a pair of bootstrapped fitness vectors
+basicBootstrap <- function(s, g){
 
-basicBootstrap <- function(g, s){
-  bt_size <- 1e4
-  
   size <- length(g)
   
   dfG <- as.data.frame(table(g))
@@ -242,80 +235,153 @@ basicBootstrap <- function(g, s){
 }
 
 
-preprocessed <- function(files, changing_name, changing) {
-  
+# c("lower.bound", "lower.boot.s", "lower.boot.g", "upper.bound", 
+#   "upper.boot.s", "upper.boot.g", changing_name, "lower.quantile", 
+#   "upper.quantile")
+
+#' Returns a matrix with 9 columns and number of files * bt_size rows
+#' The columns are:
+#'  lower.bound: the nB where the lower boundry was found
+#'  lower.boot.s: the bootstrapped fitness vector for S at the lower bound
+#'  lower.boot.g: same as above except for G
+#'  upper.bound: the nB where the upper boundry was found.
+#'  upper.boot.s: the bootstrapped fitness vector for S at the upper bound
+#'  upper.boot.g: same as above except for G
+#'  r.star: the value of nB where WG = WS. Solved for using the linear slope equation
+#'  r.star.mean: the mean of r.star
+#'  changing: the current value of the changing variable
+#'  lower.quantile: lower bound of a 95% confidence interval for the r.star vector
+#'  upper.quantile: upper bound of a 95% confidence interval for the r.star vector
+preprocessed <- function(files, changing, changing_name) {
+
   exist <- which(sapply(files, file.exists))
-  if(length(exist) != 0) 
+  if(length(exist) != length(files)) 
     stop(files[1:length(files)[!1:length(files) %in% exist]])
   if(length(files) != length(changing))
     stop("mismatch")
   
-  bounds <- mapply(rStar, files, changing, changing_name)
-  return(bounds)
+  data <- c()
+  
+  for(f in 1:length(files)){
+    data <- rbind(data, rStar(files[f], changing[f], changing_name))
+  }
+  
+  colnames(data) <- c("lower.bound", "lower.boot.s", "lower.boot.g", "upper.bound", 
+                   "upper.boot.s", "upper.boot.g", "r.star", "r.star.mean", 
+                   changing_name, "lower.quantile", "upper.quantile")
+  
+  return(data)
 }
-
-
+  
+#' HEADER=FALSE
+#' Finds R* and all acompanying data and returns it as a matrix
 rStar <- function(file, current_changing, changing_name) {
   boot <- read.table(file, header=TRUE, sep=",")
   
-  g <- boot[,seq(2, ncol(boot), 2)]
+  # Files are organized by repeating the sequence W.S W.G
   s <- boot[,seq(1, ncol(boot), 2)]
+  g <- boot[,seq(2, ncol(boot), 2)]
   
+  # Containers for possibly useful upper/lower bounds in the file from which
+  # R* can be found
   viable_lower <- c()
   viable_upper <- c()
+  
   for(i in 1:ncol(g)){
     s_greater <- which(s[,i] > g[,i])
     g_greater <- which(g[,i] > s[,i])
     
-    if(length(s_greater) / nrow(boot) <= prop_allowed)
+    if(1 - (length(s_greater) / nrow(boot)) <= prop_allowed)
       viable_lower <- append(viable_lower, i)
-    else if(length(g_greater) / nrow(boot) <= prop_allowed)
+    else if(1 - (length(g_greater) / nrow(boot)) <= prop_allowed)
       viable_upper <- append(viable_upper, i)
   }
   
+  # Upper and lower points used to calculate R* via the linear slope equation
+  lower_pair <- NULL
+  upper_pair <- NULL
+  r_stars <- NULL
+  lower_nB <- NULL
+  upper_nB <- NULL
   
-  lower_bound <- NULL
-  upper_bound <- NULL
-  r_star <- NA
-
-  while(is.null(lower_bound)){
+  while(is.null(lower_pair)){
     if(length(viable_lower) == 0){
       message(paste("No lower found for ", file, "\n",
                     "Setting R* equal to 0", sep=""))
-      r_star <- 0
+      r_stars <- 0
+      lower_nB <- -1
+      break
     }
-    curr_lower <- max(viable_lower)
-    lower_bound <- swap(cbind(s[,curr_lower], g[,curr_lower]))
-    viable_lower <- viable_lower[!viable_lower %in% curr_lower]
+    lower_nB <- max(viable_lower)
+    lower_pair <- swap(cbind(s[,lower_nB], g[,lower_nB]))
+    viable_lower <- viable_lower[!viable_lower %in% lower_nB]
   }
   
-  while(is.null(upper_bound)){
+  while(is.null(upper_pair)){
     if(length(viable_upper) == 0){
       message(paste("No upper found for ", file, "\n",
                     "Setting R* equal to 1", sep=""))
-      r_star <- 1
+      r_stars <- 1
+      upper_nB <- nA + as.integer(nA*inc_past) + 1
+      break
     }
-    curr_upper <- min(viable_upper)
-    upper_bound <- swap(cbind(g[,curr_upper], s[,curr_upper]))
-    viable_upper <- viable_upper[!viable_upper %in% curr_upper]
+    upper_nB <- min(viable_upper)
+    upper_pair <- swap(cbind(g[,upper_nB], s[,upper_nB]))
+    viable_upper <- viable_upper[!viable_upper %in% upper_nB]
   }
   
-  if(is.na(r_star)){
-    r_stars <- mapply(slopeEqual, lower_bound, g[,lower_bound], s[,lower_bound],
-                      upper_bound, g[,upper_bound], s[,upper_bound])
-    r_star <- mean(r_stars)
+  if(is.null(r_stars)){
+    r_stars <- mapply(slopeEqual, lower_nB, lower_pair[,2], lower_pair[,1],
+                      upper_nB, upper_pair[,1], upper_pair[,2])
+
   }
   
-  bounds <- matrix(nrow=nrow(boot), ncol=5)
-  names(bounds) <- c("lower", "lower.boot.s", "lower.boot.g", "upper", 
-                     "upper.boot.s", "upper.boot.g", changing_name)
-  bounds <- cbind(lower_bound, s[,lower_bound], g[,lower_bound], upper_bound,
-                  s[,upper_bound], g[,upper_bound], current_changing)
+  quant <- quantile(r_stars, probs=c(0.025, 0.975))
+  lower_quantile <- quant[1]
+  upper_quantile <- quant[2]
   
-  return(bounds)
+  data <- cbind(lower_nB, lower_pair[,1], lower_pair[,2], upper_nB,
+                upper_pair[,2], upper_pair[,1], r_stars, mean(r_stars), 
+                current_changing, lower_quantile, upper_quantile)
+  
+  return(data)
 }
 
 
+checkOverlap <- function(s, g) {
+  out <- mapply(function(x, y) {
+    out <- matrix(ncol=2, nrow=1)
+    colnames(out) <- c("S.greater", "G.greater")
+    
+    out[1,1] <- length(which(x > y))
+    out[1,2] <- bt_size - out[1,1]
+    if(out[1,1] + out[1,2] != bt_size)
+      message("at least one pair of values are equal")
+    return(out)
+  }, s, g, SIMPLIFY=FALSE)
+  
+  return(do.call(rbind, out))
+}
+
+plotFitness <- function(fitness) {
+  change <- unique(fitness[,9])
+  print(change)
+  plotting <- c()
+  
+  for(cur in change){
+    plotting <- rbind(plotting, fitness[which(floatMatch(fitness[,9], cur))[1],])
+  }
+  
+  plotting <- as.data.frame(plotting)
+
+  plot <- ggplot2::ggplot(plotting, mapping=aes(x=plotting[,9], y=plotting[,8])) +
+    geom_point() +
+    geom_line() +
+    theme_classic() +
+    geom_errorbar(aes(ymin=plotting[,10], ymax=plotting[,11]), width=0.0002)
+  
+  return(plot)
+}
 
 #' Technical overview
 #' A single fitness vector is has a length of 500,000 and is created using sample().
