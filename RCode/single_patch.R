@@ -1,4 +1,4 @@
-W_A <- 30 # burst size of host A
+burst_A <- 30 # burst size of host A
 inc_past <- 0.15 # how far past nA nB goes (limites failures)
 reps <- 5e5 # how large each fitness vector is
 bt_size <- 1e4 # how many times each fitness vector is bootstrapped
@@ -70,10 +70,48 @@ swap <- function(data){
 #' Helper function used by baseSimulation
 #' This will be called to deal with phage interactions with hosts, in order to
 #' calculate the fitnesses of children and grandchildren.
-findLyseFitness <- function(outcomes, W_B, alpha, theta, p, lambda, omega, 
-                            is_specialist) {
+findLyseFitness <- function(outcomes, burst_B, alpha, theta, p, lambda, omega, 
+                            is.specialist) {
   # found_theta represents a phage interacting with a host
   found_theta <- which(outcomes %in% c(2, 3))
+  
+  burst_chance <- rbinom(outcomes, 1, omega)
+  
+  
+  
+  
+  # burst_size_A <- rpois(length(outcomes[found_theta] == 2), burst_A)
+  # burst_size_B <- rpois(length(outcomes[found_theta] == 3), burst_B)
+  # 
+  # did_burst <- found_theta[burst_chance==TRUE]
+  # didnt_burst <- found_theta[burst_chance==FALSE]
+  # 
+  # B_did_burst <- did_burst[!outcomes[did_burst] %in% 2]
+  # B_didnt_burst <- didnt_burst[!outcomes[didnt_burst] %in% 2]
+  # 
+  # sapply()
+  # 
+  # mean_fitness_B <- replicate(length(B_did_burst), 
+  #                             mean(sample(c(0, 1, burst_A, burst_B), 
+  #                                         burst_size, replace=TRUE, 
+  #                                         prob=c(lambda, alpha, theta * p, 
+  #                                                theta*(1-p)))))
+  # outcomes[B_did_burst] <- mean_fitness_B
+  # outcomes[B_didnt_burst] <- burst_size_B[B_didnt_burst]
+  # 
+  # A_did_burst <- did_burst[!outcomes[did_burst] %in% 3]
+  # A_didnt_burst <- didnt_burst[!outcomes[didnt_burst] %in% 3]
+  # 
+  # mean_fitness_A <- NULL
+  # if(is.specialist){
+  #   mean_fitness_A <- replicate(length(A_did_burst),
+  #                               mean(sample(c(0, 1, burst_A),
+  #                                           burst_size_A[], )))
+  # }
+  
+  
+  # if b does burst inside, then use b_did_burst
+  # else, use burst_size_b  which(burst_chance == 1 & outcomes[found_theta] == 3)
   
   # The loop covers both specialist and generalist by dealing with
   # outcomes having 2 and 3 via an if else statement. The fitnesses of
@@ -81,29 +119,28 @@ findLyseFitness <- function(outcomes, W_B, alpha, theta, p, lambda, omega,
   # then returned.
   for(k in found_theta){
     if(outcomes[k] == 2){
-      burst_size <- rpois(1, W_A)
-      if(runif(1) < omega){
+      burst_size <- rpois(1, burst_A)
+      if(burst_chance[k] == TRUE){
         outcomes_lyse <- NULL
         
-        if(is_specialist){
-          outcomes_lyse <- sample(c(0, 1, W_A), burst_size, replace=TRUE,
+        if(is.specialist){
+          outcomes_lyse <- sample(c(0, 1, burst_A), burst_size, replace=TRUE,
                                   prob=c(lambda, alpha, theta*p))
-        } else {
-          outcomes_lyse <- sample(c(0, 1, W_A, W_B), burst_size, replace=TRUE,
+        }else {
+          outcomes_lyse <- sample(c(0, 1, burst_A, burst_B), burst_size, replace=TRUE,
                                   prob=c(lambda, alpha, theta*p, theta*(1 - p)))
         }
         outcomes[k] <- sum(outcomes_lyse)
-      } else {
+      }else {
         outcomes[k] <- burst_size
       }
-    } else if(outcomes[k] == 3){
-      burst_size <- rpois(1, W_B)
-      
-      if(runif(1) < omega){
-        outcomes_lyse <- sample(c(0, 1, W_A, W_B), burst_size, replace=TRUE, 
+    }else if(outcomes[k] == 3){
+      burst_size <- rpois(1, burst_B)
+      if(burst_chance[k] == FALSE){
+        outcomes_lyse <- sample(c(0, 1, burst_A, burst_B), burst_size, replace=TRUE, 
                                 prob=c(lambda, alpha, theta * p, theta*(1-p)))
         outcomes[k] <- sum(outcomes_lyse)
-      } else {
+      }else {
         outcomes[k] <- burst_size
       }
     }
@@ -127,7 +164,7 @@ slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws) {
   # Now solving g_slope*x + intercept_g = s_slope*x + intercept_s
   x <- (intercept_s - intercept_g) / (g_slope - s_slope)
   
-  return(x / W_A) # Dividing W_B by W_A will return R*
+  return(x / burst_A) # Dividing burst_B by burst_A will return R*
 }
 
 
@@ -140,18 +177,18 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
   # Simulated fitnesses
   base <- c()
   
-  runs <- 0:(W_A + as.integer(W_A*inc_past))
+  runs <- 0:(burst_A + as.integer(burst_A*inc_past))
   
   for(i in runs){
-    W_B <- i
+    burst_B <- i
     
     fit_wS <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
     fit_wG <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
     
-    fit_wS <- findLyseFitness(fit_wS, W_B=W_B, lambda=lambda, alpha=alpha, 
-                              omega=omega, theta=theta, p=p, is_specialist=TRUE)
-    fit_wG <- findLyseFitness(fit_wG, W_B=W_B, lambda=lambda, alpha=alpha, 
-                              omega=omega, theta=theta, p=p, is_specialist=FALSE)
+    fit_wS <- findLyseFitness(fit_wS, burst_B=burst_B, lambda=lambda, alpha=alpha, 
+                              omega=omega, theta=theta, p=p, is.specialist=TRUE)
+    fit_wG <- findLyseFitness(fit_wG, burst_B=burst_B, lambda=lambda, alpha=alpha, 
+                              omega=omega, theta=theta, p=p, is.specialist=FALSE)
     
     base <- cbind(base, fit_wS, fit_wG)
   }
@@ -165,24 +202,24 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
 #' the base simulation.
 baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
   
-  W_B <- 0:(W_A + as.integer(W_A*inc_past))
+  burst_B <- 0:(burst_A + as.integer(burst_A*inc_past))
   
   prediction_wS <- alpha/(alpha + lambda + theta*p) + 
-    theta*p/(alpha + lambda + theta*p)*((1 - omega)*(W_A - 1) + 
-                                          omega*((W_A - 1) + 1)*(alpha/(alpha + lambda + theta*p) + 
-                                                            (W_A - 1)*theta*p/(alpha + lambda + theta*p)))
+    theta*p/(alpha + lambda + theta*p)*((1 - omega)*(burst_A - 1) + 
+                                          omega*((burst_A - 1) + 1)*(alpha/(alpha + lambda + theta*p) + 
+                                                            (burst_A - 1)*theta*p/(alpha + lambda + theta*p)))
   
   prediction_wG <- alpha/(alpha + lambda + theta) + 
-    theta*p/(alpha + lambda + theta)*((1 - omega)*(W_A - 1) + 
-                                        omega*((W_A - 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                          theta/(alpha + lambda + theta) * (p * (W_A - 1) + (1 - p) * (W_B- 1)))) +
-    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(W_B- 1) + 
-                                              omega*((W_B- 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                theta/(alpha + lambda + theta) * (p * (W_A - 1) + (1 - p) * (W_B- 1))))
+    theta*p/(alpha + lambda + theta)*((1 - omega)*(burst_A - 1) + 
+                                        omega*((burst_A - 1) + 1)*(alpha/(alpha + lambda + theta) + 
+                                                          theta/(alpha + lambda + theta) * (p * (burst_A - 1) + (1 - p) * (burst_B- 1)))) +
+    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst_B- 1) + 
+                                              omega*((burst_B- 1) + 1)*(alpha/(alpha + lambda + theta) + 
+                                                                theta/(alpha + lambda + theta) * (p * (burst_A - 1) + (1 - p) * (burst_B- 1))))
   data <- cbind(prediction_wS, prediction_wG)
   
-  plot(x=W_B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
-  lines(x=W_B, y=data[,1], col='darkblue', lwd=1.5)
+  plot(x=burst_B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
+  lines(x=burst_B, y=data[,1], col='darkblue', lwd=1.5)
   legend("topleft", legend=c("fitness.s", "fitness.g"), lty=1, 
          col=c('darkblue', 'firebrick'), lwd=1.5)
   return(data)
@@ -229,7 +266,6 @@ basicBootstrap <- function(s, g){
   
   g_means <- replicate(bt_size, mean(sample(uniqueG, size, replace=T, prob=freqG)))
   s_means <- replicate(bt_size, mean(sample(uniqueS, size, replace=T, prob=freqS)))
-  
   
   return(cbind(s_means, g_means))
 }
@@ -301,20 +337,20 @@ rStar <- function(file, current_changing, changing_name) {
   lower_pair <- NULL
   upper_pair <- NULL
   r_stars <- NULL
-  lower_W_B <- NULL
-  upper_W_B <- NULL
+  lower_burst_B <- NULL
+  upper_burst_B <- NULL
   
   while(is.null(lower_pair)){
     if(length(viable_lower) == 0){
       message(paste("No lower found for ", file, "\n",
                     "Setting R* equal to 0", sep=""))
       r_stars <- 0
-      lower_W_B <- -1
+      lower_burst_B <- -1
       break
     }
     lower_nB <- max(viable_lower)
-    lower_pair <- swap(cbind(s[,lower_W_B], g[,lower_W_B]))
-    viable_lower <- viable_lower[!viable_lower %in% lower_W_B]
+    lower_pair <- swap(cbind(s[,lower_burst_B], g[,lower_burst_B]))
+    viable_lower <- viable_lower[!viable_lower %in% lower_burst_B]
   }
   
   while(is.null(upper_pair)){
@@ -322,17 +358,17 @@ rStar <- function(file, current_changing, changing_name) {
       message(paste("No upper found for ", file, "\n",
                     "Setting R* equal to 1", sep=""))
       r_stars <- 1
-      upper_W_B <- W_A + as.integer(W_A*inc_past) + 1
+      upper_burst_B <- burst_A + as.integer(burst_A*inc_past) + 1
       break
     }
     upper_nB <- min(viable_upper)
-    upper_pair <- swap(cbind(g[,upper_W_B], s[,upper_W_B]))
-    viable_upper <- viable_upper[!viable_upper %in% upper_W_B]
+    upper_pair <- swap(cbind(g[,upper_burst_B], s[,upper_burst_B]))
+    viable_upper <- viable_upper[!viable_upper %in% upper_burst_B]
   }
   
   if(is.null(r_stars)){
-    r_stars <- mapply(slopeEqual, lower_W_B, lower_pair[,2], lower_pair[,1],
-                      upper_W_B, upper_pair[,1], upper_pair[,2])
+    r_stars <- mapply(slopeEqual, lower_burst_B, lower_pair[,2], lower_pair[,1],
+                      upper_burst_B, upper_pair[,1], upper_pair[,2])
 
   }
   
@@ -340,7 +376,7 @@ rStar <- function(file, current_changing, changing_name) {
   lower_quantile <- quant[1]
   upper_quantile <- quant[2]
   
-  data <- cbind(lower_W_B, lower_pair[,1], lower_pair[,2], upper_W_B,
+  data <- cbind(lower_burst_B, lower_pair[,1], lower_pair[,2], upper_burst_B,
                 upper_pair[,2], upper_pair[,1], r_stars, mean(r_stars), 
                 current_changing, lower_quantile, upper_quantile)
   
@@ -384,26 +420,33 @@ plotFitness <- function(fitness) {
 }
 
 #' Technical overview
-#' A single fitness vector is has a length of 500,000 and is created using sample().
-#' Each entry on the vector represents the fitness of a unique phage. If the phage dies, 
-#' it has a fitness of 0, if it leaves the aggregation it has a fitness of 1, 
-#' and if it experiences a lyse event, it has a fitness determined by the function findLyseFitness,
-#' which will calculate the fitness of the children and grandchildren of the phage, should it 
-#' burst inside the aggregation. If the phage does not lyse inside the aggregation, then the fitness
-#' of the phage is simply equal to the burst size of the infected host. To test our hypotheses, 
-#' the net burst size of host B, nB, ranges from 0 to the net burst size of host A, nA, plus nA * .15.
-#' Once a suitable range of fitness-vectors have been found for various parameters, the fitness vectors are
-#' bootstrapped by taking the mean of a fitness vector that has had sample used on it once again. This is done 10,000
-#' times for each fitness vector.
+#' A single fitness vector is has a length of 500,000 and is created using 
+#' sample(). Each entry on the vector represents the fitness of a unique phage. 
+#' If the phage dies, it has a fitness of 0, if it leaves the aggregation it has
+#' a fitness of 1, and if it experiences a lyse event, it has a fitness 
+#' determined by the function findLyseFitness, which will calculate the fitness 
+#' of the children and grandchildren of the phage, should it burst inside the 
+#' aggregation. If the phage does not lyse inside the aggregation, then the 
+#' fitness of the phage is simply equal to the burst size of the infected host. 
+#' To test our hypotheses, the net burst size of host B, nB, ranges from 0 to
+#' the net burst size of host A, nA, plus nA * .15. Once a suitable range of 
+#' fitness-vectors have been found for various parameters, the fitness vectors
+#' are bootstrapped by taking the mean of a fitness vector that has had sample 
+#' used on it once again. This is done 10,000 times for each fitness vector.
 #' 
-#' We consider a grouping of fitness vectors for both specialists and generalists where nB is the only changing value
-#' to be a set. The ratio nB/nA is found for each set by calculating the numerical point where W_S = W_G and dividing 
-#' this by nA. The fitness lines are assumed to be linear between close enough points; the upper point is the first
-#' bootstrapped specialist/generalist fitness vector pair where each value for the generalist is greater than
-#' its opposing specialist value. The opposite is true for the lower point. If the amount of unwanted overlap is less than 
-#' or equal to 1%, then an algorithm is called that randomly cycles through the vectors and tries to swap points
-#' so that the found overlap is 0%. If this is a success, then the swapped-up pair of vectors will be used.
+#' We consider a grouping of fitness vectors for both specialists and 
+#' generalists where nB is the only changing value to be a set. The ratio nB/nA
+#' is found for each set by calculating the numerical point where W_S = W_G and 
+#' dividing this by nA. The fitness lines are assumed to be linear between close
+#' enough points; the upper point is the first bootstrapped specialist/generalist 
+#' fitness vector pair where each value for the generalist is greater than
+#' its opposing specialist value. The opposite is true for the lower point. If 
+#' the amount of unwanted overlap is less than or equal to 1%, then an algorithm
+#' is called that randomly cycles through the vectors and tries to swap points
+#' so that the found overlap is 0%. If this is a success, then the swapped-up 
+#' pair of vectors will be used.
 #' 
-#' Since linearity is assumed, the linear slope equation will be used to find the value of nB for when the specialist
-#' fitness equals the generalist fitness, and the mean of the resulting vector is divided by nA to yield R*. 95% quantiles
-#' are generated before the mean is taken.
+#' Since linearity is assumed, the linear slope equation will be used to find 
+#' the value of nB for when the specialist fitness equals the generalist 
+#' fitness, and the mean of the resulting vector is divided by nA to yield R*. 
+#' 95% quantiles are generated before the mean is taken.
