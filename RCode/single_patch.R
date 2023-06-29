@@ -1,4 +1,4 @@
-nA <- 30 # net burst size of host A
+W_A <- 30 # burst size of host A
 inc_past <- 0.15 # how far past nA nB goes (limites failures)
 reps <- 5e5 # how large each fitness vector is
 bt_size <- 1e4 # how many times each fitness vector is bootstrapped
@@ -70,7 +70,7 @@ swap <- function(data){
 #' Helper function used by baseSimulation
 #' This will be called to deal with phage interactions with hosts, in order to
 #' calculate the fitnesses of children and grandchildren.
-findLyseFitness <- function(outcomes, nB, alpha, theta, p, lambda, omega, 
+findLyseFitness <- function(outcomes, W_B, alpha, theta, p, lambda, omega, 
                             is_specialist) {
   # found_theta represents a phage interacting with a host
   found_theta <- which(outcomes %in% c(2, 3))
@@ -81,30 +81,30 @@ findLyseFitness <- function(outcomes, nB, alpha, theta, p, lambda, omega,
   # then returned.
   for(k in found_theta){
     if(outcomes[k] == 2){
-      burst_size <- rpois(1, nA + 1)
+      burst_size <- rpois(1, W_A)
       if(runif(1) < omega){
         outcomes_lyse <- NULL
         
         if(is_specialist){
-          outcomes_lyse <- sample(c(0, 1, nA), burst_size, replace=TRUE,
+          outcomes_lyse <- sample(c(0, 1, W_A), burst_size, replace=TRUE,
                                   prob=c(lambda, alpha, theta*p))
         } else {
-          outcomes_lyse <- sample(c(0, 1, nA, nB), burst_size, replace=TRUE,
+          outcomes_lyse <- sample(c(0, 1, W_A, W_B), burst_size, replace=TRUE,
                                   prob=c(lambda, alpha, theta*p, theta*(1 - p)))
         }
         outcomes[k] <- sum(outcomes_lyse)
       } else {
-        outcomes[k] <- burst_size - 1
+        outcomes[k] <- burst_size
       }
     } else if(outcomes[k] == 3){
-      burst_size <- rpois(1, nB + 1)
+      burst_size <- rpois(1, W_B)
       
       if(runif(1) < omega){
-        outcomes_lyse <- sample(c(0, 1, nA, nB), burst_size, replace=TRUE, 
+        outcomes_lyse <- sample(c(0, 1, W_A, W_B), burst_size, replace=TRUE, 
                                 prob=c(lambda, alpha, theta * p, theta*(1-p)))
         outcomes[k] <- sum(outcomes_lyse)
       } else {
-        outcomes[k] <- burst_size - 1
+        outcomes[k] <- burst_size
       }
     }
   }
@@ -127,7 +127,7 @@ slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws) {
   # Now solving g_slope*x + intercept_g = s_slope*x + intercept_s
   x <- (intercept_s - intercept_g) / (g_slope - s_slope)
   
-  return(x / nA) # Dividing nB by nA will return R*
+  return(x / W_A) # Dividing W_B by W_A will return R*
 }
 
 
@@ -140,17 +140,17 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
   # Simulated fitnesses
   base <- c()
   
-  runs <- 0:(nA + as.integer(nA*inc_past))
+  runs <- 0:(W_A + as.integer(W_A*inc_past))
   
   for(i in runs){
-    nB <- i
+    W_B <- i
     
     fit_wS <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
     fit_wG <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
     
-    fit_wS <- findLyseFitness(fit_wS, nB=nB, lambda=lambda, alpha=alpha, 
+    fit_wS <- findLyseFitness(fit_wS, W_B=W_B, lambda=lambda, alpha=alpha, 
                               omega=omega, theta=theta, p=p, is_specialist=TRUE)
-    fit_wG <- findLyseFitness(fit_wG, nB=nB, lambda=lambda, alpha=alpha, 
+    fit_wG <- findLyseFitness(fit_wG, W_B=W_B, lambda=lambda, alpha=alpha, 
                               omega=omega, theta=theta, p=p, is_specialist=FALSE)
     
     base <- cbind(base, fit_wS, fit_wG)
@@ -165,24 +165,24 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
 #' the base simulation.
 baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
   
-  nB <- 0:(nA + as.integer(nA*inc_past))
+  W_B <- 0:(W_A + as.integer(W_A*inc_past))
   
   prediction_wS <- alpha/(alpha + lambda + theta*p) + 
-    theta*p/(alpha + lambda + theta*p)*((1 - omega)*nA + 
-                                          omega*(nA + 1)*(alpha/(alpha + lambda + theta*p) + 
-                                                            nA*theta*p/(alpha + lambda + theta*p)))
+    theta*p/(alpha + lambda + theta*p)*((1 - omega)*(W_A - 1) + 
+                                          omega*((W_A - 1) + 1)*(alpha/(alpha + lambda + theta*p) + 
+                                                            (W_A - 1)*theta*p/(alpha + lambda + theta*p)))
   
   prediction_wG <- alpha/(alpha + lambda + theta) + 
-    theta*p/(alpha + lambda + theta)*((1 - omega)*nA + 
-                                        omega*(nA + 1)*(alpha/(alpha + lambda + theta) + 
-                                                          theta/(alpha + lambda + theta) * (p * nA + (1 - p) * nB))) +
-    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*nB + 
-                                              omega*(nB + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                theta/(alpha + lambda + theta) * (p * nA + (1 - p) * nB)))
+    theta*p/(alpha + lambda + theta)*((1 - omega)*(W_A - 1) + 
+                                        omega*((W_A - 1) + 1)*(alpha/(alpha + lambda + theta) + 
+                                                          theta/(alpha + lambda + theta) * (p * (W_A - 1) + (1 - p) * (W_B- 1)))) +
+    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(W_B- 1) + 
+                                              omega*((W_B- 1) + 1)*(alpha/(alpha + lambda + theta) + 
+                                                                theta/(alpha + lambda + theta) * (p * (W_A - 1) + (1 - p) * (W_B- 1))))
   data <- cbind(prediction_wS, prediction_wG)
   
-  plot(x=nB, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
-  lines(x=nB, y=data[,1], col='darkblue', lwd=1.5)
+  plot(x=W_B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
+  lines(x=W_B, y=data[,1], col='darkblue', lwd=1.5)
   legend("topleft", legend=c("fitness.s", "fitness.g"), lty=1, 
          col=c('darkblue', 'firebrick'), lwd=1.5)
   return(data)
@@ -301,20 +301,20 @@ rStar <- function(file, current_changing, changing_name) {
   lower_pair <- NULL
   upper_pair <- NULL
   r_stars <- NULL
-  lower_nB <- NULL
-  upper_nB <- NULL
+  lower_W_B <- NULL
+  upper_W_B <- NULL
   
   while(is.null(lower_pair)){
     if(length(viable_lower) == 0){
       message(paste("No lower found for ", file, "\n",
                     "Setting R* equal to 0", sep=""))
       r_stars <- 0
-      lower_nB <- -1
+      lower_W_B <- -1
       break
     }
     lower_nB <- max(viable_lower)
-    lower_pair <- swap(cbind(s[,lower_nB], g[,lower_nB]))
-    viable_lower <- viable_lower[!viable_lower %in% lower_nB]
+    lower_pair <- swap(cbind(s[,lower_W_B], g[,lower_W_B]))
+    viable_lower <- viable_lower[!viable_lower %in% lower_W_B]
   }
   
   while(is.null(upper_pair)){
@@ -322,17 +322,17 @@ rStar <- function(file, current_changing, changing_name) {
       message(paste("No upper found for ", file, "\n",
                     "Setting R* equal to 1", sep=""))
       r_stars <- 1
-      upper_nB <- nA + as.integer(nA*inc_past) + 1
+      upper_W_B <- W_A + as.integer(W_A*inc_past) + 1
       break
     }
     upper_nB <- min(viable_upper)
-    upper_pair <- swap(cbind(g[,upper_nB], s[,upper_nB]))
-    viable_upper <- viable_upper[!viable_upper %in% upper_nB]
+    upper_pair <- swap(cbind(g[,upper_W_B], s[,upper_W_B]))
+    viable_upper <- viable_upper[!viable_upper %in% upper_W_B]
   }
   
   if(is.null(r_stars)){
-    r_stars <- mapply(slopeEqual, lower_nB, lower_pair[,2], lower_pair[,1],
-                      upper_nB, upper_pair[,1], upper_pair[,2])
+    r_stars <- mapply(slopeEqual, lower_W_B, lower_pair[,2], lower_pair[,1],
+                      upper_W_B, upper_pair[,1], upper_pair[,2])
 
   }
   
@@ -340,7 +340,7 @@ rStar <- function(file, current_changing, changing_name) {
   lower_quantile <- quant[1]
   upper_quantile <- quant[2]
   
-  data <- cbind(lower_nB, lower_pair[,1], lower_pair[,2], upper_nB,
+  data <- cbind(lower_W_B, lower_pair[,1], lower_pair[,2], upper_W_B,
                 upper_pair[,2], upper_pair[,1], r_stars, mean(r_stars), 
                 current_changing, lower_quantile, upper_quantile)
   
