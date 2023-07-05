@@ -22,8 +22,7 @@ swap <- function(data){
   # Vector of locations inside data where the second column is > than the first
   to_fix <- which(data[,1] <= data[,2])
   left_to_fix <- length(to_fix)
-  cat("amount to fix ", left_to_fix, "\n")
-  
+
   if(left_to_fix == 0) return(data)
   
   
@@ -55,6 +54,8 @@ swap <- function(data){
         if(left_to_fix > 0){
           break
         }
+        attributes(data)$swap_count <- count
+        print(attributes(data))
         return(data)
       }
       # If the above block does not trigger, then viable will be updated
@@ -142,6 +143,9 @@ slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws) {
 #' RETURN: a matrix where the first column is the fitness vector for W_S and the
 #'  second is a fitness_vector for W_G
 baseSimulation <- function(alpha, theta, p, lambda, omega) {
+  
+  #Effective fitness: E(W_S) = (theta*p*W_S + alpha)/alpha + lambda + theta*p
+  
   # Simulated fitnesses
   base <- c()
   
@@ -267,16 +271,12 @@ preprocessed <- function(files, changing, changing_name) {
   if(length(files) != length(changing))
     stop("mismatch")
   
-  data <- c()
-  
+
+  data <- list()
   for(f in 1:length(files)){
-    data <- rbind(data, rStar(files[f], changing[f], changing_name))
+    data[[f]] <- rStar(files[f], changing[f], changing_name)
   }
-  
-  colnames(data) <- c("lower.bound", "lower.boot.s", "lower.boot.g", "upper.bound", 
-                   "upper.boot.s", "upper.boot.g", "r.star", "r.star.mean", 
-                   changing_name, "lower.quantile", "upper.quantile")
-  
+
   return(data)
 }
   
@@ -319,7 +319,7 @@ rStar <- function(file, current_changing, changing_name) {
       lower_burst_B <- -1
       break
     }
-    lower_nB <- max(viable_lower)
+    lower_burst_B <- max(viable_lower)
     lower_pair <- swap(cbind(s[,lower_burst_B], g[,lower_burst_B]))
     viable_lower <- viable_lower[!viable_lower %in% lower_burst_B]
   }
@@ -332,7 +332,7 @@ rStar <- function(file, current_changing, changing_name) {
       upper_burst_B <- burst_A + as.integer(burst_A*inc_past) + 1
       break
     }
-    upper_nB <- min(viable_upper)
+    upper_burst_B <- min(viable_upper)
     upper_pair <- swap(cbind(g[,upper_burst_B], s[,upper_burst_B]))
     viable_upper <- viable_upper[!viable_upper %in% upper_burst_B]
   }
@@ -347,10 +347,14 @@ rStar <- function(file, current_changing, changing_name) {
   lower_quantile <- quant[1]
   upper_quantile <- quant[2]
   
-  data <- cbind(lower_burst_B, lower_pair[,1], lower_pair[,2], upper_burst_B,
-                upper_pair[,2], upper_pair[,1], r_stars, mean(r_stars), 
-                current_changing, lower_quantile, upper_quantile)
-  
+  data <- list(lower.bound = lower_burst_B, lower.boot.s = lower_pair[,1], 
+               lower.boot.g = lower_pair[,2], upper.bound = upper_burst_B,
+               upper.boot.s = upper_pair[,2], upper.boot.g = upper_pair[,1], 
+               r.star = r_stars, r.star.mean = mean(r_stars), 
+               changing.name = current_changing, lower.quantile = lower_quantile, 
+               upper.quantile = upper_quantile, 
+               swap.count.lower = attributes(lower_pair)$swap_count, 
+               swap.count.upper = attributes(upper_pair)$swap_count)
   return(data)
 }
 
