@@ -74,51 +74,19 @@ findLyseFitness <- function(outcomes, burst_B, alpha, theta, p, lambda, omega,
                             is.specialist) {
   # found_theta represents a phage interacting with a host
   found_theta <- which(outcomes %in% c(2, 3))
+  if(length(found_theta) == 0)
+    return(outcomes)
   
-  burst_chance <- rbinom(outcomes, 1, omega)
-  
-  
-  
-  
-  # burst_size_A <- rpois(length(outcomes[found_theta] == 2), burst_A)
-  # burst_size_B <- rpois(length(outcomes[found_theta] == 3), burst_B)
-  # 
-  # did_burst <- found_theta[burst_chance==TRUE]
-  # didnt_burst <- found_theta[burst_chance==FALSE]
-  # 
-  # B_did_burst <- did_burst[!outcomes[did_burst] %in% 2]
-  # B_didnt_burst <- didnt_burst[!outcomes[didnt_burst] %in% 2]
-  # 
-  # sapply()
-  # 
-  # mean_fitness_B <- replicate(length(B_did_burst), 
-  #                             mean(sample(c(0, 1, burst_A, burst_B), 
-  #                                         burst_size, replace=TRUE, 
-  #                                         prob=c(lambda, alpha, theta * p, 
-  #                                                theta*(1-p)))))
-  # outcomes[B_did_burst] <- mean_fitness_B
-  # outcomes[B_didnt_burst] <- burst_size_B[B_didnt_burst]
-  # 
-  # A_did_burst <- did_burst[!outcomes[did_burst] %in% 3]
-  # A_didnt_burst <- didnt_burst[!outcomes[didnt_burst] %in% 3]
-  # 
-  # mean_fitness_A <- NULL
-  # if(is.specialist){
-  #   mean_fitness_A <- replicate(length(A_did_burst),
-  #                               mean(sample(c(0, 1, burst_A),
-  #                                           burst_size_A[], )))
-  # }
-  
-  
-  # if b does burst inside, then use b_did_burst
-  # else, use burst_size_b  which(burst_chance == 1 & outcomes[found_theta] == 3)
+  burst_chance <- rbinom(found_theta, 1, omega)
   
   # The loop covers both specialist and generalist by dealing with
   # outcomes having 2 and 3 via an if else statement. The fitnesses of
   # children and grandchildren are then found and put into outcomes, which is 
   # then returned.
-  for(k in found_theta){
-    if(outcomes[k] == 2){
+  for(k in 1:length(found_theta)){
+    loc <- found_theta[k]
+    
+    if(outcomes[loc] == 2){
       burst_size <- rpois(1, burst_A)
       if(burst_chance[k] == TRUE){
         outcomes_lyse <- NULL
@@ -130,18 +98,18 @@ findLyseFitness <- function(outcomes, burst_B, alpha, theta, p, lambda, omega,
           outcomes_lyse <- sample(c(0, 1, burst_A, burst_B), burst_size, replace=TRUE,
                                   prob=c(lambda, alpha, theta*p, theta*(1 - p)))
         }
-        outcomes[k] <- sum(outcomes_lyse)
+        outcomes[loc] <- sum(outcomes_lyse)
       }else {
-        outcomes[k] <- burst_size
+        outcomes[loc] <- burst_size
       }
-    }else if(outcomes[k] == 3){
+    }else if(outcomes[loc] == 3){
       burst_size <- rpois(1, burst_B)
       if(burst_chance[k] == FALSE){
         outcomes_lyse <- sample(c(0, 1, burst_A, burst_B), burst_size, replace=TRUE, 
                                 prob=c(lambda, alpha, theta * p, theta*(1-p)))
-        outcomes[k] <- sum(outcomes_lyse)
+        outcomes[loc] <- sum(outcomes_lyse)
       }else {
-        outcomes[k] <- burst_size
+        outcomes[loc] <- burst_size
       }
     }
   }
@@ -264,8 +232,11 @@ basicBootstrap <- function(s, g){
   uniqueS <- as.numeric(levels(dfS[,1]))
   freqS <- dfS[,2] / size
   
-  g_means <- replicate(bt_size, mean(sample(uniqueG, size, replace=T, prob=freqG)))
-  s_means <- replicate(bt_size, mean(sample(uniqueS, size, replace=T, prob=freqS)))
+  g_means <- replicate(bt_size, sum(rmultinom(1, size, freqG) * uniqueG) / size)
+  s_means <- replicate(bt_size, sum(rmultinom(1, size, freqS) * uniqueS) / size)
+
+  # g_means <- replicate(bt_size, mean(sample(uniqueG, size, replace=T, prob=freqG)))
+  # s_means <- replicate(bt_size, mean(sample(uniqueS, size, replace=T, prob=freqS)))
   
   return(cbind(s_means, g_means))
 }
