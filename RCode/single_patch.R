@@ -6,65 +6,42 @@ prop_allowed <- 0.01 # proportion of allowed overlap between bootstrapped vector
 
 
 
-#' Helper function used throughout
-#' Used to verify floating numbers
-floatMatch <- function(x, y) {
-  return(abs(x - y) < 1e-6)
-}
+#' #' Helper function used throughout
+#' #' Used to verify floating numbers
+#' floatMatch <- function(x, y) {
+#'   return(abs(x - y) < 1e-6)
+#' }
 
 
-#' This attempts to swap overlapping locations with non-overlapping locations 
-#' from the matrix so that there is no overlap at all. The first column is 
-#' expected to be larger than the second; locations where the second is larger
-#' than the first is considered to be overlap.
-swap <- function(data){
+#' Helper function used in runChanging AND standalone function
+#' Generates two vectors representing W_S and W_G for the given parameters.
+#' Used by equilibrium simulation.
+#' RETURN: a matrix where the first column is the fitness vector for W_S and the
+#'  second is a fitness_vector for W_G
+baseSimulation <- function(alpha, theta, p, lambda, omega) {
   
-  # Vector of locations inside data where the second column is > than the first
-  to_fix <- which(data[,1] <= data[,2])
-  left_to_fix <- length(to_fix)
-
-  if(left_to_fix == 0) return(data)
+  #Effective fitness: E(W_S) = (theta*p*W_S + alpha)/alpha + lambda + theta*p
   
+  # Simulated fitnesses
+  base <- c()
   
-  for(index in to_fix){
-    # The current data location trying to be fixed.
-    overlap <- data[index,]
+  runs <- 0:(burst_A + as.integer(burst_A*inc_past))
+  
+  for(i in runs){
+    burst_B <- i
     
-    # Locations that could potentially swap with the current overlap row
-    viable <- which(!1:nrow(data) %in% to_fix)
-
-    # Records how many times a redraw happens
-    count <- 1 
+    fit_wS <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
+    fit_wG <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
     
-    while(length(viable) > 0){
-      
-      rand <- sample(viable, 1)
-      
-      curr_viable <- data[rand,]
-      
-      if(curr_viable[1] > overlap[2] & overlap[1] > curr_viable[2]){
-        
-        # Swapping the first column of the two rows
-        temp <- curr_viable[1]
-        data[rand,1] <- overlap[1]
-        data[to_fix[index],1] <- temp
-        
-        left_to_fix <- left_to_fix - 1
-
-        if(left_to_fix > 0){
-          break
-        }
-        attributes(data)$swap_count <- count
-        print(attributes(data))
-        return(data)
-      }
-      # If the above block does not trigger, then viable will be updated
-      # to exclude the just-used random selection
-      viable <- viable[which(!viable %in% rand)]
-      count <- count + 1
-    }
+    fit_wS <- findLyseFitness(fit_wS, burst_B=burst_B, lambda=lambda, alpha=alpha, 
+                              omega=omega, theta=theta, p=p, is.specialist=TRUE)
+    fit_wG <- findLyseFitness(fit_wG, burst_B=burst_B, lambda=lambda, alpha=alpha, 
+                              omega=omega, theta=theta, p=p, is.specialist=FALSE)
+    
+    base <- cbind(base, fit_wS, fit_wG)
   }
-  return(NULL) # If the algorithm does not generate a viable matrix
+  
+  return(base)   
 }
 
 
@@ -118,114 +95,9 @@ findLyseFitness <- function(outcomes, burst_B, alpha, theta, p, lambda, omega,
 }
 
 
-#' Helper function used by zeroHunter
-#' Finds the point where wG = wS and return that point by solving the 
-#' linear slope equations for both.
-slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws) {
-  
-  g_slope <- (max_wg - min_wg) / (max_x - min_x)
-  s_slope <- (max_ws - min_ws) / (max_x - min_x)
-  
-  intercept_g <- min_wg - (g_slope * min_x)
-  intercept_s <- min_ws - (s_slope * min_x)
-  
-  
-  # Now solving g_slope*x + intercept_g = s_slope*x + intercept_s
-  x <- (intercept_s - intercept_g) / (g_slope - s_slope)
-  
-  return(x / burst_A) # Dividing burst_B by burst_A will return R*
-}
-
-
-#' Helper function used in runChanging AND standalone function
-#' Generates two vectors representing W_S and W_G for the given parameters.
-#' Used by equilibrium simulation.
-#' RETURN: a matrix where the first column is the fitness vector for W_S and the
-#'  second is a fitness_vector for W_G
-baseSimulation <- function(alpha, theta, p, lambda, omega) {
-  
-  #Effective fitness: E(W_S) = (theta*p*W_S + alpha)/alpha + lambda + theta*p
-  
-  # Simulated fitnesses
-  base <- c()
-  
-  runs <- 0:(burst_A + as.integer(burst_A*inc_past))
-  
-  for(i in runs){
-    burst_B <- i
-    
-    fit_wS <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
-    fit_wG <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
-    
-    fit_wS <- findLyseFitness(fit_wS, burst_B=burst_B, lambda=lambda, alpha=alpha, 
-                              omega=omega, theta=theta, p=p, is.specialist=TRUE)
-    fit_wG <- findLyseFitness(fit_wG, burst_B=burst_B, lambda=lambda, alpha=alpha, 
-                              omega=omega, theta=theta, p=p, is.specialist=FALSE)
-    
-    base <- cbind(base, fit_wS, fit_wG)
-  }
-  
-  return(base)   
-}
-
-
-#' Standalone function
-#' Generates a nA by 2 matrix which contains the predictions for W_s and W_g of 
-#' the base simulation.
-baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
-  
-  burst_B <- 0:(burst_A + as.integer(burst_A*inc_past))
-  
-  prediction_wS <- alpha/(alpha + lambda + theta*p) + 
-    theta*p/(alpha + lambda + theta*p)*((1 - omega)*(burst_A - 1) + 
-                                          omega*((burst_A - 1) + 1)*(alpha/(alpha + lambda + theta*p) + 
-                                                            (burst_A - 1)*theta*p/(alpha + lambda + theta*p)))
-  
-  prediction_wG <- alpha/(alpha + lambda + theta) + 
-    theta*p/(alpha + lambda + theta)*((1 - omega)*(burst_A - 1) + 
-                                        omega*((burst_A - 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                          theta/(alpha + lambda + theta) * (p * (burst_A - 1) + (1 - p) * (burst_B- 1)))) +
-    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst_B- 1) + 
-                                              omega*((burst_B- 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                theta/(alpha + lambda + theta) * (p * (burst_A - 1) + (1 - p) * (burst_B- 1))))
-  data <- cbind(prediction_wS, prediction_wG)
-  
-  plot(x=burst_B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
-  lines(x=burst_B, y=data[,1], col='darkblue', lwd=1.5)
-  legend("topleft", legend=c("fitness.s", "fitness.g"), lty=1, 
-         col=c('darkblue', 'firebrick'), lwd=1.5)
-  return(data)
-}
-
-
-#' Standalone function that plots the results generated by baseSimulation
-#' and baseSimPrediction
-plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE, 
-                               colors=c('coral4', 'darkorchid4')) {
-  
-  curr_wS <- colMeans(base[,seq(from=1, to=ncol(base), by=2)])
-  curr_wG <- colMeans(base[,seq(from=2, to=ncol(base), by=2)])
-  
-  y_min <- min(curr_wG)
-  y_max <- max(curr_wG)
-  
-  if(max(curr_wS) > max(curr_wG))
-    y_max <- max(curr_wS)
-  
-  plot(y=curr_wS, x=1:length(curr_wS), type='p', col=colors[1], 
-       xlim=c(1, length(curr_wS)), ylim=c(y_min, y_max))
-  
-  points(y=curr_wG, x=1:length(curr_wG), col=colors[2])
-  
-  if(with.prediction){
-    lines(y=prediction[1],x=1:length(curr_wS),col=colors[1], lwd=1.5)
-    lines(y=prediction[2],x=1:length(curr_wG), col=colors[2], lwd=1.5)
-  }
-}
-
 #' Generates a pair of bootstrapped fitness vectors
 basicBootstrap <- function(s, g){
-
+  
   size <- length(g)
   
   dfG <- as.data.frame(table(g))
@@ -238,12 +110,14 @@ basicBootstrap <- function(s, g){
   
   g_means <- replicate(bt_size, sum(rmultinom(1, size, freqG) * uniqueG) / size)
   s_means <- replicate(bt_size, sum(rmultinom(1, size, freqS) * uniqueS) / size)
-
+  
   # g_means <- replicate(bt_size, mean(sample(uniqueG, size, replace=T, prob=freqG)))
   # s_means <- replicate(bt_size, mean(sample(uniqueS, size, replace=T, prob=freqS)))
   
   return(cbind(s_means, g_means))
 }
+
+
 
 
 # c("lower.bound", "lower.boot.s", "lower.boot.g", "upper.bound", 
@@ -279,7 +153,8 @@ preprocessed <- function(files, changing, changing_name) {
 
   return(data)
 }
-  
+
+
 #' HEADER=FALSE
 #' Finds R* and all acompanying data and returns it as a matrix
 rStar <- function(file, current_changing, changing_name) {
@@ -359,6 +234,136 @@ rStar <- function(file, current_changing, changing_name) {
 }
 
 
+#' This attempts to swap overlapping locations with non-overlapping locations 
+#' from the matrix so that there is no overlap at all. The first column is 
+#' expected to be larger than the second; locations where the second is larger
+#' than the first is considered to be overlap.
+swap <- function(data){
+  
+  # Vector of locations inside data where the second column is > than the first
+  to_fix <- which(data[,1] <= data[,2])
+  left_to_fix <- length(to_fix)
+  
+  if(left_to_fix == 0) return(data)
+  
+  
+  for(index in to_fix){
+    # The current data location trying to be fixed.
+    overlap <- data[index,]
+    
+    # Locations that could potentially swap with the current overlap row
+    viable <- which(!1:nrow(data) %in% to_fix)
+    
+    # Records how many times a redraw happens
+    count <- 1 
+    
+    while(length(viable) > 0){
+      
+      rand <- sample(viable, 1)
+      
+      curr_viable <- data[rand,]
+      
+      if(curr_viable[1] > overlap[2] & overlap[1] > curr_viable[2]){
+        
+        # Swapping the first column of the two rows
+        temp <- curr_viable[1]
+        data[rand,1] <- overlap[1]
+        data[to_fix[index],1] <- temp
+        
+        left_to_fix <- left_to_fix - 1
+        
+        if(left_to_fix > 0){
+          break
+        }
+        attributes(data)$swap_count <- count
+        print(attributes(data))
+        return(data)
+      }
+      # If the above block does not trigger, then viable will be updated
+      # to exclude the just-used random selection
+      viable <- viable[which(!viable %in% rand)]
+      count <- count + 1
+    }
+  }
+  return(NULL) # If the algorithm does not generate a viable matrix
+}
+
+
+#' Helper function used by zeroHunter
+#' Finds the point where wG = wS and return that point by solving the 
+#' linear slope equations for both.
+slopeEqual <- function(min_x, min_wg, min_ws, max_x, max_wg, max_ws) {
+  
+  g_slope <- (max_wg - min_wg) / (max_x - min_x)
+  s_slope <- (max_ws - min_ws) / (max_x - min_x)
+  
+  intercept_g <- min_wg - (g_slope * min_x)
+  intercept_s <- min_ws - (s_slope * min_x)
+  
+  
+  # Now solving g_slope*x + intercept_g = s_slope*x + intercept_s
+  x <- (intercept_s - intercept_g) / (g_slope - s_slope)
+  
+  return(x / burst_A) # Dividing burst_B by burst_A will return R*
+}
+
+
+#' Standalone function
+#' Generates a nA by 2 matrix which contains the predictions for W_s and W_g of 
+#' the base simulation.
+baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
+  
+  burst_B <- 0:(burst_A + as.integer(burst_A*inc_past))
+  
+  prediction_wS <- alpha/(alpha + lambda + theta*p) + 
+    theta*p/(alpha + lambda + theta*p)*((1 - omega)*(burst_A - 1) + 
+                                          omega*((burst_A - 1) + 1)*(alpha/(alpha + lambda + theta*p) + 
+                                                                       (burst_A - 1)*theta*p/(alpha + lambda + theta*p)))
+  
+  prediction_wG <- alpha/(alpha + lambda + theta) + 
+    theta*p/(alpha + lambda + theta)*((1 - omega)*(burst_A - 1) + 
+                                        omega*((burst_A - 1) + 1)*(alpha/(alpha + lambda + theta) + 
+                                                                     theta/(alpha + lambda + theta) * (p * (burst_A - 1) + (1 - p) * (burst_B- 1)))) +
+    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst_B- 1) + 
+                                              omega*((burst_B- 1) + 1)*(alpha/(alpha + lambda + theta) + 
+                                                                          theta/(alpha + lambda + theta) * (p * (burst_A - 1) + (1 - p) * (burst_B- 1))))
+  data <- cbind(prediction_wS, prediction_wG)
+  
+  plot(x=burst_B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
+  lines(x=burst_B, y=data[,1], col='darkblue', lwd=1.5)
+  legend("topleft", legend=c("fitness.s", "fitness.g"), lty=1, 
+         col=c('darkblue', 'firebrick'), lwd=1.5)
+  return(data)
+}
+
+
+#' Standalone function that plots the results generated by baseSimulation
+#' and baseSimPrediction
+plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE, 
+                               colors=c('coral4', 'darkorchid4')) {
+  
+  curr_wS <- colMeans(base[,seq(from=1, to=ncol(base), by=2)])
+  curr_wG <- colMeans(base[,seq(from=2, to=ncol(base), by=2)])
+  
+  y_min <- min(curr_wG)
+  y_max <- max(curr_wG)
+  
+  if(max(curr_wS) > max(curr_wG))
+    y_max <- max(curr_wS)
+  
+  plot(y=curr_wS, x=1:length(curr_wS), type='p', col=colors[1], 
+       xlim=c(1, length(curr_wS)), ylim=c(y_min, y_max))
+  
+  points(y=curr_wG, x=1:length(curr_wG), col=colors[2])
+  
+  if(with.prediction){
+    lines(y=prediction[1],x=1:length(curr_wS),col=colors[1], lwd=1.5)
+    lines(y=prediction[2],x=1:length(curr_wG), col=colors[2], lwd=1.5)
+  }
+}
+
+
+
 checkOverlap <- function(s, g) {
   out <- mapply(function(x, y) {
     out <- matrix(ncol=2, nrow=1)
@@ -374,24 +379,16 @@ checkOverlap <- function(s, g) {
   return(do.call(rbind, out))
 }
 
+
 plotFitness <- function(fitness) {
-  change <- unique(fitness[,9])
-  print(change)
-  plotting <- c()
+  plotting <- data.frame(matrix(ncol=3, nrow=length(fitness)))
   
-  for(cur in change){
-    plotting <- rbind(plotting, fitness[which(floatMatch(fitness[,9], cur))[1],])
+  for(i in 1:length(fitness)){
+    plotting[i,] <- c(fitness[[i]]$r.star, fitness[[i]]$lower.quantile,
+                      fitness[[i]]$upper.quantile)
   }
   
-  plotting <- as.data.frame(plotting)
-
-  plot <- ggplot2::ggplot(plotting, mapping=aes(x=plotting[,9], y=plotting[,8])) +
-    geom_point() +
-    geom_line() +
-    theme_classic() +
-    geom_errorbar(aes(ymin=plotting[,10], ymax=plotting[,11]), width=0.0002)
-  
-  return(plot)
+  return(plotting)
 }
 
 #' Technical overview
