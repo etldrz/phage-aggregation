@@ -1,8 +1,8 @@
 burst.size.A <- 30 # burst size of host A
-inc.past <- 0.15 # how far past burst.size.A burst.size.B goes (eliminates upper failures)
+burst.sizes.B <- 0:(burst.size.A + as.integer(burst.size.A * 0.15))
 reps <- 5e5 # how large each fitness vector is
 bt.size <- 1e4 # the size of the re-sampled fitness vector (bootstrapping)
-allowed.prop <- 0.01 # proportion of allowed overlap between bootstrapped vectors
+allowed.overlap <- 0.01 # proportion of allowed overlap between bootstrapped vectors
 
 
 
@@ -25,10 +25,7 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
   # Simulated fitnesses
   base <- c()
   
-  runs <- 0:(burst.size.A + as.integer(burst.size.A*inc.past))
-  
-  for(i in runs){
-    burst.size.B <- i
+  for(burst.size.B in burst.sizes.B){
     
     ws.fitness <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
     wg.fitness <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
@@ -173,9 +170,9 @@ rStar <- function(file, current.changing, changing.name) {
     s.greater <- which(s[,i] > g[,i])
     g.greater <- which(g[,i] > s[,i])
     
-    if(1 - (length(s.greater) / nrow(boot)) <= allowed.prop)
+    if(1 - (length(s.greater) / nrow(boot)) <= allowed.overlap)
       viable.lower <- append(viable.lower, i)
-    else if(1 - (length(g.greater) / nrow(boot)) <= allowed.prop)
+    else if(1 - (length(g.greater) / nrow(boot)) <= allowed.overlap)
       viable.upper <- append(viable.upper, i)
   }
   
@@ -313,8 +310,6 @@ slopeEqual <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
 #' the base simulation.
 baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
   
-  burst.size.B <- 0:(burst.size.A + as.integer(burst.size.A*inc.past))
-  
   ws.prediction <- alpha/(alpha + lambda + theta*p) + 
     theta*p/(alpha + lambda + theta*p)*((1 - omega)*(burst.size.A - 1) + 
                                           omega*((burst.size.A - 1) + 1)*(alpha/(alpha + lambda + theta*p) + 
@@ -323,14 +318,14 @@ baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
   wg.prediction <- alpha/(alpha + lambda + theta) + 
     theta*p/(alpha + lambda + theta)*((1 - omega)*(burst.size.A - 1) + 
                                         omega*((burst.size.A - 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                     theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.size.B- 1)))) +
-    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst.size.B- 1) + 
-                                              omega*((burst.size.B- 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                          theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.size.B- 1))))
+                                                                     theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1)))) +
+    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst.sizes.B- 1) + 
+                                              omega*((burst.sizes.B- 1) + 1)*(alpha/(alpha + lambda + theta) + 
+                                                                          theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1))))
   data <- cbind(ws.prediction, wg.prediction)
   
-  plot(x=burst.size.B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
-  lines(x=burst.size.B, y=data[,1], col='darkblue', lwd=1.5)
+  plot(x=burst.sizes.B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
+  lines(x=burst.sizes.B, y=data[,1], col='darkblue', lwd=1.5)
   legend("topleft", legend=c("fitness.s", "fitness.g"), lty=1, 
          col=c('darkblue', 'firebrick'), lwd=1.5)
   return(data)
