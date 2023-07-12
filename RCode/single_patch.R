@@ -102,7 +102,7 @@ basicBootstrap <- function(s, g){
   freq.g <- df.g[,2] / size
   
   df.s <- as.data.frame(table(s))
-  unique.s <- as.numeric(levels(dfS[,1]))
+  unique.s <- as.numeric(levels(df.s[,1]))
   freq.s <- df.s[,2] / size
   
   g.means <- replicate(bt.size, sum(rmultinom(1, size, freq.g) * unique.g) / size)
@@ -143,12 +143,15 @@ preprocessed <- function(files, changing, changing.name) {
     stop("mismatch")
   
   
-  data <- list()
+  fitness <- list()
   for(f in 1:length(files)){
-    data[[f]] <- rStar(files[f], changing[f], changing.name)
+    fitness[[f]] <- rStar(files[f], changing[f], changing.name)
   }
   
-  return(data)
+  attributes(fitness)$changing.name <- changing.name
+  
+  View(fitness)
+  return(fitness)
 }
 
 
@@ -223,7 +226,7 @@ rStar <- function(file, current.changing, changing.name) {
                lower.boot.g = lower.pair[,2], upper.bound = upper.burst.B,
                upper.boot.s = upper.pair[,2], upper.boot.g = upper.pair[,1], 
                r.star = r.stars, r.star.mean = mean(r.stars), 
-               changing.name = current.changing, lower.quantile = lower.quantile, 
+               changing.value = current.changing, lower.quantile = lower.quantile, 
                upper.quantile = upper.quantile, 
                swap.count.lower = attributes(lower.pair)$swap.count, 
                swap.count.upper = attributes(upper.pair)$swap.count)
@@ -273,7 +276,6 @@ swap <- function(data){
           break
         }
         attributes(data)$swap.count <- count
-        print(attributes(data))
         return(data)
       }
       # If the above block does not trigger, then viable will be updated
@@ -306,8 +308,8 @@ slopeEqual <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
 
 
 #' Standalone function
-#' Generates a nA by 2 matrix which contains the predictions for W_s and W_g of 
-#' the base simulation.
+#' Generates a matrix with two columns and burst.size.A rows which contains the 
+#' predictions for W_s and W_g of the base simulation.
 baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
   
   ws.prediction <- alpha/(alpha + lambda + theta*p) + 
@@ -376,15 +378,40 @@ checkOverlap <- function(s, g) {
 
 
 plotFitness <- function(fitness) {
-  plotting <- data.frame(matrix(ncol=3, nrow=length(fitness)))
+  suppressMessages(library(ggplot2))
+  plotting <- data.frame(matrix(ncol=4, nrow=length(fitness)))
   
   for(i in 1:length(fitness)){
-    plotting[i,] <- c(fitness[[i]]$r.star, fitness[[i]]$lower.quantile,
-                      fitness[[i]]$upper.quantile)
+    plotting[i,] <- c(fitness[[i]]$r.star.mean, fitness[[i]]$lower.quantile,
+                      fitness[[i]]$upper.quantile, fitness[[i]]$changing.value)
   }
   
-  return(plotting)
+  plot <- ggplot(plotting, aes(x=plotting[,4], y=plotting[,1])) +
+    geom_point() +
+    geom_line() +
+    geom_errorbar(aes(ymin=plotting[,2], ymax=plotting[,3]), width=0.01, alpha=.75) +
+    xlab(attributes(fitness)$changing.name) +
+    ylab("R*") +
+    theme_classic()
+  
+  unloadNamespace('ggplot2')
+  return(plot)
 }
+
+
+# Is there some sort of equilibrium between the amount of specialists and the
+# amount of generalists within a single patch, patch dissolution notwithstanding?
+# Even if the patch dissolution time is too short for any meaningful ratio to be reached,
+# is there a meta ratio between patches?
+
+
+
+
+
+
+
+
+
 
 #' Technical overview
 #' A single fitness vector is has a length of 500,000 and is created using 
