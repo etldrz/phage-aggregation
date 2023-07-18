@@ -115,25 +115,25 @@ basicBootstrap <- function(s, g){
 }
 
 
-
-
-# c("lower.bound", "lower.boot.s", "lower.boot.g", "upper.bound", 
-#   "upper.boot.s", "upper.boot.g", changing.name, "lower.quantile", 
-#   "upper.quantile")
-
-#' Returns a matrix with 9 columns and number of files * bt.size rows
-#' The columns are:
-#'  lower.bound: the nB where the lower boundry was found
+#' Returns a list with length(changing) lists, each one of those sublists 
+#' contains 13 entries
+#' The entry names are:
+#'  lower.bound: the burst.sizes.B point where the lower boundary was found
 #'  lower.boot.s: the bootstrapped fitness vector for S at the lower bound
 #'  lower.boot.g: same as above except for G
-#'  upper.bound: the nB where the upper boundry was found.
+#'  upper.bound: the burst.sizes.B point where the upper boundary was found.
 #'  upper.boot.s: the bootstrapped fitness vector for S at the upper bound
 #'  upper.boot.g: same as above except for G
-#'  r.star: the value of nB where WG = WS. Solved for using the linear slope equation
+#'  r.star: the values of the burst.sizes.B point where WG = WS. 
+#'    Solved for using the linear slope equation
 #'  r.star.mean: the mean of r.star
-#'  changing: the current value of the changing variable
+#'  'changing.name': the current value of the changing variable
 #'  lower.quantile: lower bound of a 95% confidence interval for the r.star vector
 #'  upper.quantile: upper bound of a 95% confidence interval for the r.star vector
+#'  swap.count.lower: how many times the swapping algorithm was performed on the 
+#'    lower point.
+#'  swap.count.upper: how many times the swapping algorithm was performed on the 
+#'    upper point.
 preprocessed <- function(files, changing, changing.name) {
   
   exist <- which(sapply(files, file.exists))
@@ -141,7 +141,6 @@ preprocessed <- function(files, changing, changing.name) {
     stop(files[1:length(files)[!1:length(files) %in% exist]])
   if(length(files) != length(changing))
     stop("mismatch")
-  
   
   fitness <- list()
   for(f in 1:length(files)){
@@ -155,8 +154,7 @@ preprocessed <- function(files, changing, changing.name) {
 }
 
 
-#' HEADER=FALSE
-#' Finds R* and all acompanying data and returns it as a matrix
+#' Finds R* and all accompanying data and returns it as a list to preprocessed()
 rStar <- function(file, current.changing, changing.name) {
   boot <- read.table(file, header=TRUE, sep=",")
   
@@ -169,24 +167,31 @@ rStar <- function(file, current.changing, changing.name) {
   viable.lower <- c()
   viable.upper <- c()
   
+  # For each column in the pair of matrices, find the proportion of overlap and 
+  # add it to the appropriate container if it is less than or equal to allowed.overlap
   for(i in 1:ncol(g)){
     s.greater <- which(s[,i] > g[,i])
     g.greater <- which(g[,i] > s[,i])
     
-    if(1 - (length(s.greater) / nrow(boot)) <= allowed.overlap)
+    if(1 - (length(s.greater) / nrow(boot)) <= allowed.overlap){
       viable.lower <- append(viable.lower, i)
-    else if(1 - (length(g.greater) / nrow(boot)) <= allowed.overlap)
+    }
+    else if(1 - (length(g.greater) / nrow(boot)) <= allowed.overlap){
       viable.upper <- append(viable.upper, i)
+    }
   }
   
   # Upper and lower points used to calculate R* via the linear slope equation
   lower.pair <- NULL
   upper.pair <- NULL
-  r.stars <- NULL
   lower.burst.B <- NULL
   upper.burst.B <- NULL
+  r.stars <- c()
   
   while(is.null(lower.pair)){
+    
+    # This if block contains placeholder logic for what to do if the simulation 
+    # cannot find a viable lower point.
     if(length(viable.lower) == 0){
       message(paste("No lower found for ", file, "\n",
                     "Setting R* equal to 0", sep=""))
@@ -194,8 +199,13 @@ rStar <- function(file, current.changing, changing.name) {
       lower.burst.B <- -1
       break
     }
-    lower.burst.B <- max(viable.lower)
+    # Taking the max so it will be closer to viable.upper's chosen point
+    lower.burst.B <- max(viable.lower) 
+    
+    # swap() will return the matrix unaltered if there is nothing to swap and null 
+    # if the algorithm fails
     lower.pair <- swap(cbind(s[,lower.burst.B], g[,lower.burst.B]))
+    
     viable.lower <- viable.lower[!viable.lower %in% lower.burst.B]
   }
   
@@ -212,10 +222,10 @@ rStar <- function(file, current.changing, changing.name) {
     viable.upper <- viable.upper[!viable.upper %in% upper.burst.B]
   }
   
+  # equilibriumPoint() finds the point where the slope of W.G equals W.S
   if(is.null(r.stars)){
-    r.stars <- mapply(slopeEqual, lower.burst.B, lower.pair[,2], lower.pair[,1],
+    r.stars <- mapply(equilibriumPoint, lower.burst.B, lower.pair[,2], lower.pair[,1],
                       upper.burst.B, upper.pair[,1], upper.pair[,2])
-    
   }
   
   quant <- quantile(r.stars, probs=c(0.025, 0.975))
@@ -226,7 +236,7 @@ rStar <- function(file, current.changing, changing.name) {
                lower.boot.g = lower.pair[,2], upper.bound = upper.burst.B,
                upper.boot.s = upper.pair[,2], upper.boot.g = upper.pair[,1], 
                r.star = r.stars, r.star.mean = mean(r.stars), 
-               changing.value = current.changing, lower.quantile = lower.quantile, 
+               changing.name = current.changing, lower.quantile = lower.quantile, 
                upper.quantile = upper.quantile, 
                swap.count.lower = attributes(lower.pair)$swap.count, 
                swap.count.upper = attributes(upper.pair)$swap.count)
@@ -288,10 +298,10 @@ swap <- function(data){
 }
 
 
-#' Helper function used by zeroHunter
+#' Helper function used by rStar
 #' Finds the point where wG = wS and return that point by solving the 
 #' linear slope equations for both.
-slopeEqual <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
+equilibriumPoint <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
   
   g.slope <- (max.wg - min.wg) / (max.x - min.x)
   s.slope <- (max.ws - min.ws) / (max.x - min.x)
@@ -360,7 +370,8 @@ plotBaseSimulation <- function(base, prediction=NA, with.prediction=FALSE,
 }
 
 
-
+#' When given two fitness matrices, this function will return a matrix containing
+#' values comparing overlap for each ith column.
 checkOverlap <- function(s, g) {
   out <- mapply(function(x, y) {
     out <- matrix(ncol=2, nrow=1)
@@ -371,12 +382,13 @@ checkOverlap <- function(s, g) {
     if(out[1,1] + out[1,2] != bt.size)
       message("at least one pair of values are equal")
     return(out)
-  }, s, g, SIMPLIFY=FALSE)
+  }, 
+  s, g, SIMPLIFY=FALSE)
   
   return(do.call(rbind, out))
 }
 
-
+#' Takes a fitness list generated by preprocessed() and returns a ggplot object
 plotFitness <- function(fitness) {
   suppressMessages(library(ggplot2))
   plotting <- data.frame(matrix(ncol=4, nrow=length(fitness)))
@@ -397,20 +409,6 @@ plotFitness <- function(fitness) {
   unloadNamespace('ggplot2')
   return(plot)
 }
-
-
-# Is there some sort of equilibrium between the amount of specialists and the
-# amount of generalists within a single patch, patch dissolution notwithstanding?
-# Even if the patch dissolution time is too short for any meaningful ratio to be reached,
-# is there a meta ratio between patches?
-
-
-
-
-
-
-
-
 
 
 #' Technical overview
