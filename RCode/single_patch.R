@@ -144,16 +144,22 @@ basicBootstrap <- function(s, g){
 #'    upper point.
 preprocessed <- function(files, changing, changing.name) {
   
-  exist <- which(sapply(files, file.exists))
-  if(length(exist) != length(files)) 
-    stop(files[1:length(files)[!1:length(files) %in% exist]])
-  if(length(files) != length(changing))
-    stop("mismatch")
+  exist <- sapply(files, file.exists)
+  if(sum(exist) != length(files))
+    stop(cat("the following files do not exist",
+               files[!1:length(files) %in% exist],
+               sep="\n"))
   
-  fitness <- list()
-  for(f in 1:length(files)){
-    fitness[[f]] <- rStar(files[f], changing[f], changing.name)
-  }
+  if(length(files) != length(changing))
+    stop("mismatch between files length and changing length")
+  
+  # fitness <- vector("list", length=length(changing))
+  # for(f in 1:length(files)){
+  #   fitness[[f]] <- rStar(files[f], changing[f], changing.name)
+  # }
+  
+  fitness <- mapply(FUN=rStar, SIMPLIFY=FALSE,
+                    files, changing, changing.name)
   
   attributes(fitness)$changing.name <- changing.name
   
@@ -164,7 +170,7 @@ preprocessed <- function(files, changing, changing.name) {
 
 #' Finds R* and all accompanying data for a single file and returns it as a list
 #' to preprocessed().
-rStar <- function(file, current.changing, changing.name) {
+rStar <- function(file, current.changing) {
   boot <- read.table(file, header=TRUE, sep=",")
   
   # Files are organized by repeating the sequence W.S W.G
@@ -205,7 +211,7 @@ rStar <- function(file, current.changing, changing.name) {
       message(paste("No lower found for ", file, "\n",
                     "Setting R* equal to 0", sep=""))
       r.stars <- 0
-      lower.burst.B <- -1
+      lower.burst.B <- -Inf
       break
     }
     # Taking the max so it will be closer to viable.upper's chosen point
@@ -224,7 +230,7 @@ rStar <- function(file, current.changing, changing.name) {
       message(paste("No upper found for ", file, "\n",
                     "Setting R* equal to 1", sep=""))
       r.stars <- 1
-      upper.burst.B <- burst.size.A + as.integer(burst.size.A*inc.past) + 1
+      upper.burst.B <- Inf
       break
     }
     upper.burst.B <- min(viable.upper)
@@ -246,7 +252,7 @@ rStar <- function(file, current.changing, changing.name) {
                lower.boot.g = lower.pair[,2], upper.bound = upper.burst.B,
                upper.boot.s = upper.pair[,2], upper.boot.g = upper.pair[,1], 
                r.star = r.stars, r.star.mean = mean(r.stars), 
-               changing.name = current.changing, lower.quantile = lower.quantile, 
+               changing.value = current.changing, lower.quantile = lower.quantile, 
                upper.quantile = upper.quantile, 
                swap.count.lower = attributes(lower.pair)$swap.count, 
                swap.count.upper = attributes(upper.pair)$swap.count)
@@ -262,9 +268,9 @@ swap <- function(data){
   
   # Vector of locations inside data where the second column is > than the first
   to.fix <- which(data[,1] <= data[,2])
-  to.fix.remaining <- length(to.fix)
+  to.fix.size <- length(to.fix)
   
-  if(to.fix.remaining == 0) return(data)
+  if(to.fix.size == 0) return(data)
   
   
   for(index in to.fix){
@@ -290,9 +296,9 @@ swap <- function(data){
         data[rand,1] <- overlap[1]
         data[to.fix[index],1] <- temp
         
-        to.fix.remaining <- to.fix.remaining - 1
+        to.fix.size <- to.fix.size - 1
         
-        if(to.fix.remaining > 0){
+        if(to.fix.size > 0){
           break
         }
         attributes(data)$swap.count <- count
@@ -431,33 +437,32 @@ plotFitness <- function(fitness, plot=TRUE) {
 
 
 #' Technical overview
-#' A single fitness vector is has a length of 500,000 and is created using 
-#' sample(). Each entry on the vector represents the fitness of a unique phage. 
-#' If the phage dies, it has a fitness of 0, if it leaves the aggregation it has
-#' a fitness of 1, and if it experiences a lyse event, it has a fitness 
-#' determined by the function findLyseFitness, which will calculate the fitness 
-#' of the children and grandchildren of the phage, should it burst inside the 
-#' aggregation. If the phage does not lyse inside the aggregation, then the 
-#' fitness of the phage is simply equal to the burst size of the infected host. 
-#' To test our hypotheses, the net burst size of host B, nB, ranges from 0 to
-#' the net burst size of host A, nA, plus nA * .15. Once a suitable range of 
-#' fitness-vectors have been found for various parameters, the fitness vectors
-#' are bootstrapped by taking the mean of a fitness vector that has had sample 
-#' used on it once again. This is done 10,000 times for each fitness vector.
+#' Parameters are first tested to see if they are biologically plausible via 
+#' the function viableParams. Then, a matrix of non-altered fitness data is
+#' is created by baseSimulation and then saved to a txt file. This fitness data
+#' is bootstrapped and saved to its own respective txt file. Once a desired
+#' number and set of parameters have been chosen and bootstrapped, the function
+#' preprocessed iterates through each file and calls rStar on it. rStar finds 
+#' the equilibrium point by using the linear slope equation for each matrix 
+#' where W.S equals W.G and returns that and other relevant data, such as 95%
+#' quantiles and the upper and lower bounds used for the slope equation. 
+#' preprocessed will return a list of the found values for each file.
 #' 
-#' We consider a grouping of fitness vectors for both specialists and 
-#' generalists where nB is the only changing value to be a set. The ratio nB/nA
-#' is found for each set by calculating the numerical point where W_S = W_G and 
-#' dividing this by nA. The fitness lines are assumed to be linear between close
-#' enough points; the upper point is the first bootstrapped specialist/generalist 
-#' fitness vector pair where each value for the generalist is greater than
-#' its opposing specialist value. The opposite is true for the lower point. If 
-#' the amount of unwanted overlap is less than or equal to 1%, then an algorithm
-#' is called that randomly cycles through the vectors and tries to swap points
-#' so that the found overlap is 0%. If this is a success, then the swapped-up 
-#' pair of vectors will be used.
+#' rStar finds viable points for the linear slope equation by noting B burst 
+#' sizes (columns) where all of the generalist fitness data are greater
+#' than the specialist fitness (upper bound) and where all of the specialist
+#' fitness data are greater than the generalist fitness (lower bound). If there
+#' is a small amount of incorrect overlap, less than or equal to 1 percent, then 
+#' an algorithm which randomly swaps rows of the current pair of bootstrapped
+#' fitness vectors is called to try and reduce the amount of incorrrect overlap 
+#' to 0%. 
 #' 
-#' Since linearity is assumed, the linear slope equation will be used to find 
-#' the value of nB for when the specialist fitness equals the generalist 
-#' fitness, and the mean of the resulting vector is divided by nA to yield R*. 
-#' 95% quantiles are generated before the mean is taken.
+#' This swapping algorithm is called for two reasons. Firstly, to try and
+#' decrease the amount of times that a suitable upper or lower bound is not
+#' found for the linear slope equation. Secondly, to potentially offset failures
+#' of finding the actual R* value due to W.G having a nonlinear slope--the 
+#' closer that the upper and lower bounds are together, the greater the
+#' likelihood of the line segment being linear. Should an upper or lower bound
+#' not be found, the R* value is set to be 1 or 0 respectively and a note is 
+#' made on the plot.
+#' 
