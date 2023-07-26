@@ -33,14 +33,14 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
   # Simulated fitnesses
   base <- c()
   
-  for(burst.size.B in burst.sizes.B){
+  for(b in burst.sizes.B){
     
     ws.fitness <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
     wg.fitness <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
     
-    ws.fitness <- findLyseFitness(ws.fitness, burst.size.B=burst.size.B, lambda=lambda, alpha=alpha, 
+    ws.fitness <- findLyseFitness(ws.fitness, burst.size.B=b, lambda=lambda, alpha=alpha, 
                               omega=omega, theta=theta, p=p, is.specialist=TRUE)
-    wg.fitness <- findLyseFitness(wg.fitness, burst.size.B=burst.size.B, lambda=lambda, alpha=alpha, 
+    wg.fitness <- findLyseFitness(wg.fitness, burst.size.B=b, lambda=lambda, alpha=alpha, 
                               omega=omega, theta=theta, p=p, is.specialist=FALSE)
     
     base <- cbind(base, ws.fitness, wg.fitness)
@@ -60,7 +60,7 @@ findLyseFitness <- function(outcomes, burst.size.B, alpha, theta, p, lambda, ome
   if(length(theta.occured) == 0)
     return(outcomes)
   
-  burst.chance <- rbinom(theta.occured, 1, omega)
+  burst.chances <- rbinom(theta.occured, 1, omega)
   
   # The loop covers both specialist and generalist by dealing with
   # outcomes having 2 and 3 via an if else statement. The fitnesses of
@@ -87,7 +87,7 @@ findLyseFitness <- function(outcomes, burst.size.B, alpha, theta, p, lambda, ome
       }
     }else if(outcomes[loc] == 3){
       burst.size <- rpois(1, burst.size.B)
-      if(burst.chance[k] == FALSE){
+      if(burst.chances[k] == TRUE){
         inside.lyse.fitness <- sample(c(0, 1, burst.size.A, burst.size.B), burst.size, replace=TRUE, 
                                 prob=c(lambda, alpha, theta * p, theta*(1-p)))
         outcomes[loc] <- sum(inside.lyse.fitness)
