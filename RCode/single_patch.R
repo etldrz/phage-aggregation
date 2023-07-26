@@ -39,9 +39,9 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
     wg.fitness <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
     
     ws.fitness <- findLyseFitness(ws.fitness, burst.size.B=b, lambda=lambda, alpha=alpha, 
-                              omega=omega, theta=theta, p=p, is.specialist=TRUE)
+                                  omega=omega, theta=theta, p=p, is.specialist=TRUE)
     wg.fitness <- findLyseFitness(wg.fitness, burst.size.B=b, lambda=lambda, alpha=alpha, 
-                              omega=omega, theta=theta, p=p, is.specialist=FALSE)
+                                  omega=omega, theta=theta, p=p, is.specialist=FALSE)
     
     base <- cbind(base, ws.fitness, wg.fitness)
   }
@@ -71,15 +71,15 @@ findLyseFitness <- function(outcomes, burst.size.B, alpha, theta, p, lambda, ome
     
     if(outcomes[loc] == 2){
       burst.size <- rpois(1, burst.size.A)
-      if(burst.chance[k] == TRUE){
+      if(burst.chances[k] == TRUE){
         inside.lyse.fitness <- NULL
         
         if(is.specialist){
           inside.lyse.fitness <- sample(c(0, 1, burst.size.A), burst.size, replace=TRUE,
-                                  prob=c(lambda, alpha, theta*p))
+                                        prob=c(lambda, alpha, theta*p))
         }else {
           inside.lyse.fitness <- sample(c(0, 1, burst.size.A, burst.size.B), burst.size, replace=TRUE,
-                                  prob=c(lambda, alpha, theta*p, theta*(1 - p)))
+                                        prob=c(lambda, alpha, theta*p, theta*(1 - p)))
         }
         outcomes[loc] <- sum(inside.lyse.fitness)
       }else {
@@ -89,7 +89,7 @@ findLyseFitness <- function(outcomes, burst.size.B, alpha, theta, p, lambda, ome
       burst.size <- rpois(1, burst.size.B)
       if(burst.chances[k] == TRUE){
         inside.lyse.fitness <- sample(c(0, 1, burst.size.A, burst.size.B), burst.size, replace=TRUE, 
-                                prob=c(lambda, alpha, theta * p, theta*(1-p)))
+                                      prob=c(lambda, alpha, theta * p, theta*(1-p)))
         outcomes[loc] <- sum(inside.lyse.fitness)
       }else {
         outcomes[loc] <- burst.size
@@ -147,8 +147,8 @@ preprocessed <- function(files, changing, changing.name) {
   exist <- sapply(files, file.exists)
   if(sum(exist) != length(files))
     stop(cat("the following files do not exist",
-               files[!1:length(files) %in% exist],
-               sep="\n"))
+             files[!1:length(files) %in% exist],
+             sep="\n"))
   
   if(length(files) != length(changing))
     stop("mismatch between files length and changing length")
@@ -341,15 +341,15 @@ baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
   ws.prediction <- alpha/(alpha + lambda + theta*p) + 
     theta*p/(alpha + lambda + theta*p)*((1 - omega)*(burst.size.A - 1) + 
                                           omega*((burst.size.A - 1) + 1)*(alpha/(alpha + lambda + theta*p) + 
-                                                                       (burst.size.A - 1)*theta*p/(alpha + lambda + theta*p)))
+                                                                            (burst.size.A - 1)*theta*p/(alpha + lambda + theta*p)))
   
   wg.prediction <- alpha/(alpha + lambda + theta) + 
     theta*p/(alpha + lambda + theta)*((1 - omega)*(burst.size.A - 1) + 
                                         omega*((burst.size.A - 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                     theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1)))) +
+                                                                          theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1)))) +
     theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst.sizes.B- 1) + 
                                               omega*((burst.sizes.B- 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                          theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1))))
+                                                                                theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1))))
   data <- cbind(ws.prediction, wg.prediction)
   
   plot(x=burst.sizes.B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
