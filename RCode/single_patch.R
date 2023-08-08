@@ -1,22 +1,20 @@
 burst.size.A <- 50 # burst size of host A
 burst.sizes.B <- 0:(burst.size.A + as.integer(burst.size.A * 0.05))
-reps <- 5e5 # how large each fitness vector is
-bt.size <- 1e4 # the size of the re-sampled fitness vector (bootstrapping)
+reps <- 1.5e6 # how large each fitness vector is
+bt.size <- 1e4 # the size of the bootstrapped fitness vector
 allowed.overlap <- 0.01 # proportion of allowed overlap between bootstrapped vectors
 
 
 
 #' #' Helper function used throughout
 #' #' Used to verify floating numbers
-#' floatMatch <- function(x, y) {
-#'   return(abs(x - y) < 1e-6)
-#' }
+#' floatMatch <- function(x, y) { abs(x - y) < 1e-6 }
 
 
 viableParams <- function(alpha, theta, lambda) {
-  worst.case <- 5*theta / (theta + lambda + alpha) * exp(-10*lambda)
+  worst.case <- (5^theta) / (theta + lambda + alpha) * exp(-10*lambda)
   
-  best.case <- 45*theta / (theta + lambda + alpha) * exp(-0.1*lambda)
+  best.case <- (45^theta) / (theta + lambda + alpha) * exp(-0.1*lambda)
   cbind(worst.case, best.case)
 }
 
@@ -34,14 +32,13 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
   base <- c()
   
   for(b in burst.sizes.B){
-    
     ws.fitness <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
     wg.fitness <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
     
-    ws.fitness <- findLyseFitness(ws.fitness, burst.size.B=b, lambda=lambda, alpha=alpha, 
-                                  omega=omega, theta=theta, p=p, is.specialist=TRUE)
-    wg.fitness <- findLyseFitness(wg.fitness, burst.size.B=b, lambda=lambda, alpha=alpha, 
-                                  omega=omega, theta=theta, p=p, is.specialist=FALSE)
+    ws.fitness <- findLyseFitness(ws.fitness, burst.size.B=b, alpha, theta, p, 
+                                  lambda, omega, is.specialist=TRUE)
+    wg.fitness <- findLyseFitness(wg.fitness, burst.size.B=b, alpha, theta, p,
+                                  lambda, omega, is.specialist=FALSE)
     
     base <- cbind(base, ws.fitness, wg.fitness)
   }
@@ -55,41 +52,44 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
 #' calculate the fitnesses of children and grandchildren.
 findLyseFitness <- function(outcomes, burst.size.B, alpha, theta, p, lambda, omega, 
                             is.specialist) {
-  # theta.occured represents a phage interacting with a host
-  theta.occured <- which(outcomes %in% c(2, 3))
-  if(length(theta.occured) == 0)
-    return(outcomes)
+  # infected.bacteria represents a phage interacting with a host
+  infected.bacteria <- which(outcomes %in% c(2, 3))
+  if(length(infected.bacteria) == 0) return(outcomes)
   
-  burst.chances <- rbinom(theta.occured, 1, omega)
-  
+  # logical vector indicating whether the infected host bursts inside the aggregation
+  burst.chances <- rbinom(infected.bacteria, 1, omega)
+
   # The loop covers both specialist and generalist by dealing with
   # outcomes having 2 and 3 via an if else statement. The fitnesses of
   # children and grandchildren are then found and put into outcomes, which is 
   # then returned.
-  for(k in 1:length(theta.occured)){
-    loc <- theta.occured[k]
+  for(k in 1:length(infected.bacteria)){
+    loc <- infected.bacteria[k]
     
     if(outcomes[loc] == 2){
-      burst.size <- rpois(1, burst.size.A)
+      burst.size <- burst.size.A - 1
       if(burst.chances[k] == TRUE){
         inside.lyse.fitness <- NULL
         
         if(is.specialist){
           inside.lyse.fitness <- sample(c(0, 1, burst.size.A), burst.size, replace=TRUE,
                                         prob=c(lambda, alpha, theta*p))
-        }else {
+        }else{
           inside.lyse.fitness <- sample(c(0, 1, burst.size.A, burst.size.B), burst.size, replace=TRUE,
-                                        prob=c(lambda, alpha, theta*p, theta*(1 - p)))
+                                        prob=c(lambda, alpha, theta*p, theta*(1-p)))
         }
+        
         outcomes[loc] <- sum(inside.lyse.fitness)
-      }else {
+      }else{ # if the bacterium bursts outside the aggregation
         outcomes[loc] <- burst.size
       }
     }else if(outcomes[loc] == 3){
-      burst.size <- rpois(1, burst.size.B)
+      burst.size <- burst.size.B - 1
+      if(burst.size == -1) burst.size <- 0
+      
       if(burst.chances[k] == TRUE){
         inside.lyse.fitness <- sample(c(0, 1, burst.size.A, burst.size.B), burst.size, replace=TRUE, 
-                                      prob=c(lambda, alpha, theta * p, theta*(1-p)))
+                                      prob=c(lambda, alpha, theta*p, theta*(1-p)))
         outcomes[loc] <- sum(inside.lyse.fitness)
       }else {
         outcomes[loc] <- burst.size
@@ -153,17 +153,13 @@ preprocessed <- function(files, changing, changing.name) {
   if(length(files) != length(changing))
     stop("mismatch between files length and changing length")
   
-  # fitness <- vector("list", length=length(changing))
-  # for(f in 1:length(files)){
-  #   fitness[[f]] <- rStar(files[f], changing[f], changing.name)
-  # }
-  
-  fitness <- mapply(FUN=rStar, SIMPLIFY=FALSE,
-                    files, changing, changing.name)
+  fitness <- vector("list", length=length(changing))
+  for(f in 1:length(files)){
+    fitness[[f]] <- rStar(files[f], changing[f])
+  }
   
   attributes(fitness)$changing.name <- changing.name
   
-  View(fitness)
   return(fitness)
 }
 
@@ -329,7 +325,7 @@ equilibriumPoint <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
   # Now solving g.slope*x + g.intercept = s.slope*x + s.intercept
   x <- (s.intercept - g.intercept) / (g.slope - s.slope)
   
-  return(x / burst.size.A) # Dividing burst.size.B by burst.size.A will return R*
+  return((x - 1) / (burst.size.A - 1)) # Dividing nB by nA will return R*
 }
 
 
@@ -347,17 +343,20 @@ baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
     theta*p/(alpha + lambda + theta)*((1 - omega)*(burst.size.A - 1) + 
                                         omega*((burst.size.A - 1) + 1)*(alpha/(alpha + lambda + theta) + 
                                                                           theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1)))) +
-    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst.sizes.B- 1) + 
-                                              omega*((burst.sizes.B- 1) + 1)*(alpha/(alpha + lambda + theta) + 
+    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst.sizes.B - 1) + 
+                                              omega*((burst.sizes.B - 1) + 1)*(alpha/(alpha + lambda + theta) + 
                                                                                 theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1))))
   data <- cbind(ws.prediction, wg.prediction)
   
-  plot(x=burst.sizes.B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
-  lines(x=burst.sizes.B, y=data[,1], col='darkblue', lwd=1.5)
-  legend("topleft", legend=c("fitness.s", "fitness.g"), lty=1, 
-         col=c('darkblue', 'firebrick'), lwd=1.5)
+  # plot(x=burst.sizes.B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
+  # lines(x=burst.sizes.B, y=data[,1], col='darkblue', lwd=1.5)
+  # legend("topleft", legend=c("fitness.s", "fitness.g"), lty=1, 
+  #        col=c('darkblue', 'firebrick'), lwd=1.5)
   return(data)
 }
+
+
+complexSimPrediction <- function(alpha, theta, p, lambda){ 1 / (1 + (alpha + lambda) / (theta * p)) }
 
 
 #' Standalone function that plots the results generated by baseSimulation
@@ -386,7 +385,7 @@ plotBaseSimulation <- function(base, colors=c('firebrick', 'darkorchid4')) {
        xlim=c(1, length(current.ws)), ylim=c(y.min, y.max), lwd=1.5, ylab="fitness",
        xlab="burst.sizes.B", cex.lab = .75)
   lines(y=current.wg, x=1:length(current.wg), col=colors[2], lwd=1.5)
-  legend('topleft', legend=c("WS","WG"), fill=colors)
+  #legend('topleft', legend=c("WS","WG"), fill=colors)
 }
 
 
@@ -409,17 +408,17 @@ checkOverlap <- function(s, g) {
 }
 
 #' Takes a fitness list generated by preprocessed() and returns a ggplot object
-plotFitness <- function(fitness, plot=TRUE) {
+plotFitness <- function(fitness, generate.plot=TRUE) {
   plotting <- data.frame(matrix(ncol=4, nrow=length(fitness)))
   names(plotting) <- c("r.star.mean", "lower.quantile",
                        "upper.quantile", attributes(fitness)$changing.name)
   
   for(i in 1:length(fitness)){
     plotting[i,] <- c(fitness[[i]]$r.star.mean, fitness[[i]]$lower.quantile,
-                      fitness[[i]]$upper.quantile, fitness[[i]]$changing.name)
+                      fitness[[i]]$upper.quantile, fitness[[i]]$changing.value)
   }
   
-  if(!plot) return(plotting)
+  if(!generate.plot) return(plotting)
   
   suppressMessages(library(ggplot2))
   plot <- ggplot(plotting, aes(x=plotting[,4], y=plotting[,1])) +
@@ -465,4 +464,3 @@ plotFitness <- function(fitness, plot=TRUE) {
 #' likelihood of the line segment being linear. Should an upper or lower bound
 #' not be found, the R* value is set to be 1 or 0 respectively and a note is 
 #' made on the plot.
-#' 
