@@ -67,7 +67,7 @@ findLyseFitness <- function(outcomes, burst.size.B, alpha, theta, p, lambda, ome
     loc <- infected.bacteria[k]
     
     if(outcomes[loc] == 2){
-      burst.size <- burst.size.A - 1
+      burst.size <- burst.size.A
       if(burst.chances[k] == TRUE){
         inside.lyse.fitness <- NULL
         
@@ -84,14 +84,13 @@ findLyseFitness <- function(outcomes, burst.size.B, alpha, theta, p, lambda, ome
         outcomes[loc] <- burst.size
       }
     }else if(outcomes[loc] == 3){
-      burst.size <- burst.size.B - 1
-      if(burst.size == -1) burst.size <- 0
-      
+      burst.size <- burst.size.B
+
       if(burst.chances[k] == TRUE){
         inside.lyse.fitness <- sample(c(0, 1, burst.size.A, burst.size.B), burst.size, replace=TRUE, 
                                       prob=c(lambda, alpha, theta*p, theta*(1-p)))
         outcomes[loc] <- sum(inside.lyse.fitness)
-      }else {
+      }else{
         outcomes[loc] <- burst.size
       }
     }
