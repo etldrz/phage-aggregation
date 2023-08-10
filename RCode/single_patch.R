@@ -122,7 +122,7 @@ basicBootstrap <- function(s, g){
 }
 
 
-#' Returns a list with length(changing) lists, each one of those sublists 
+#' Returns a list with length(changing) sublists, each one of those sublists 
 #' contains 13 entries
 #' The entry names are:
 #'  lower.bound: the burst.sizes.B point where the lower boundary was found
@@ -132,15 +132,17 @@ basicBootstrap <- function(s, g){
 #'  upper.boot.s: the bootstrapped fitness vector for S at the upper bound
 #'  upper.boot.g: same as above except for G
 #'  r.star: the values of the burst.sizes.B point where WG = WS. 
-#'    Solved for using the linear slope equation
+#'    Solved for using the linear slope equation found in equalityPoint
 #'  r.star.mean: the mean of r.star
-#'  'changing.name': the current value of the changing variable
+#'  changing.value: the current value of the changing variable
 #'  lower.quantile: lower bound of a 95% confidence interval for the r.star vector
 #'  upper.quantile: upper bound of a 95% confidence interval for the r.star vector
 #'  swap.count.lower: how many times the swapping algorithm was performed on the 
 #'    lower point.
 #'  swap.count.upper: how many times the swapping algorithm was performed on the 
 #'    upper point.
+#'  The name of the current changing variable will be stored in the main list's
+#'    attributes.
 preprocessed <- function(files, changing, changing.name) {
   
   exist <- sapply(files, file.exists)
@@ -233,8 +235,8 @@ rStar <- function(file, current.changing) {
     viable.upper <- viable.upper[!viable.upper %in% upper.burst.B]
   }
   
-  # equilibriumPoint() finds the point where the slope of W.G equals W.S
-  if(is.null(r.stars)) r.stars <- mapply(equilibriumPoint, 
+  # equalityPoint() finds the point where the slope of W.G equals W.S
+  if(is.null(r.stars)) r.stars <- mapply(equalityPoint, 
                                          lower.burst.B, lower.pair[,2], 
                                          lower.pair[,1], upper.burst.B, 
                                          upper.pair[,1], upper.pair[,2])
@@ -312,7 +314,7 @@ swap <- function(data){
 #' Helper function used by rStar
 #' Finds the point where wG = wS and return that point by solving the 
 #' linear slope equations for both.
-equilibriumPoint <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
+equalityPoint <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
   
   g.slope <- (max.wg - min.wg) / (max.x - min.x)
   s.slope <- (max.ws - min.ws) / (max.x - min.x)
