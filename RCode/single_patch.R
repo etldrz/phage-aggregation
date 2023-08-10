@@ -336,17 +336,17 @@ equalityPoint <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
 baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
   
   ws.prediction <- alpha/(alpha + lambda + theta*p) + 
-    theta*p/(alpha + lambda + theta*p)*((1 - omega)*(burst.size.A - 1) + 
-                                          omega*((burst.size.A - 1) + 1)*(alpha/(alpha + lambda + theta*p) + 
-                                                                            (burst.size.A - 1)*theta*p/(alpha + lambda + theta*p)))
+    theta*p/(alpha + lambda + theta*p)*((1 - omega)*(burst.size.A) + 
+                                          omega*(burst.size.A)*(alpha/(alpha + lambda + theta*p) + 
+                                                                            burst.size.A*theta*p/(alpha + lambda + theta*p)))
   
   wg.prediction <- alpha/(alpha + lambda + theta) + 
-    theta*p/(alpha + lambda + theta)*((1 - omega)*(burst.size.A - 1) + 
-                                        omega*((burst.size.A - 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                          theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1)))) +
-    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst.sizes.B - 1) + 
-                                              omega*((burst.sizes.B - 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                                theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1))))
+    theta*p/(alpha + lambda + theta)*((1 - omega)*(burst.size.A) + 
+                                        omega*(burst.size.A)*(alpha/(alpha + lambda + theta) + 
+                                                                          theta/(alpha + lambda + theta) * (p * (burst.size.A) + (1 - p) * (burst.sizes.B)))) +
+    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst.sizes.B) + 
+                                              omega*(burst.sizes.B)*(alpha/(alpha + lambda + theta) + 
+                                                                                theta/(alpha + lambda + theta) * (p * (burst.size.A) + (1 - p) * (burst.sizes.B))))
   data <- cbind(ws.prediction, wg.prediction)
   
   # plot(x=burst.sizes.B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
