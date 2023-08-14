@@ -11,9 +11,11 @@ mapply(function(x, theta, p) {
   s <- pred[,seq(1, ncol(pred), 2)]
   g <- pred[,seq(2, ncol(pred), 2)]
   
-  lines(x=burst.sizes.B, y=s, col='black')
-  lines(x=burst.sizes.B, y=g, col='black')
-  mtext <- paste("theta: ", theta, " p: ", p, sep="")
+  lines(x=burst.sizes.B, y=s, col='black', lwd=1.65)
+  lines(x=burst.sizes.B, y=g, col='black', lwd=1.65)
+  mtext(paste("theta:", theta, "p:", p, sep=" "))
 }, boot.files.tp, thetas, ps)
   
 
+title <- paste("alpha:", alpha, "lambda:", lambda, "omega:", omega, sep=" ")
+mtext(title, side=3, line=-2, outer=TRUE)

@@ -376,6 +376,8 @@ plotBaseSimulation <- function(base, colors=c('firebrick', 'darkorchid4')) {
   
   y.max <- max(current.wg)
   if(max(current.ws) > y.max) y.max <- max(current.ws)
+  
+  y.min <- min(current.wg)
   # total <- data.frame(rbind(current.wg, current.ws))
   # total$x <- burst.sizes.B
   # names(total) <- c("fitness", "type", "x")
@@ -386,10 +388,10 @@ plotBaseSimulation <- function(base, colors=c('firebrick', 'darkorchid4')) {
   #   theme_classic()
   # return(plot)
   
-  plot(y=current.ws, x=1:length(current.ws), type='l', col=colors[1], 
-       xlim=c(1, length(current.ws)), ylim=c(0, y.max), lwd=1.5, ylab="fitness",
-       xlab="burst.sizes.B", cex.lab = .75)
-  lines(y=current.wg, x=1:length(current.wg), col=colors[2], lwd=1.5)
+  plot(y=current.ws, x=burst.sizes.B, type='p', col=colors[1], 
+       xlim=c(1, length(current.ws)), ylim=c(y.min, y.max), lwd=1.5, ylab="fitness",
+       xlab="burst.sizes.B", cex.lab = .75, pch=6)
+  points(y=current.wg, x=burst.sizes.B, col=colors[2], lwd=1.5, pch=6)
   #legend('topleft', legend=c("WS","WG"), fill=colors)
 }
 
