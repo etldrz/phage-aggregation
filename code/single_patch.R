@@ -12,10 +12,18 @@ allowed.overlap <- 0.01 # proportion of allowed overlap between bootstrapped vec
 
 
 viableParams <- function(alpha, theta, lambda) {
-  worst.case <- (5^theta) / (theta + lambda + alpha) * exp(-10*lambda)
+  # calculate mean fitness after finding a patch times the chance that you find one before you die.
+  # want that number of be around one to be consistent with modeling a virus that could persist under these conditions.
+  # we don't specift patch density in the environment specifically, so assume that it could take anywhere from 0.1 hours to ten hours to find a patch.
+  # we also want this logic to work for the specailist across a range of possible values of p.
+  # so, the worst-case is when p is small (0.1) and patches are far apart (mean of ten hours to find one)
+  # best case is when p is big (0.9) and patches are close together (mean of 0.1 hours)
+  # so, calculate aboluste fitness for both worst and best case--do they bracket one?
+  # if yes, that parameter set (theta, lambda, alpha) is potnetially vialbe
+  # if no, don't do it
+  worst.case <- (alpha + 50 * 0.1 * theta) / (theta * 0.1 + lambda + alpha) * exp(-10*lambda)
   
-  best.case <- (45^theta) / (theta + lambda + alpha) * exp(-0.1*lambda)
-  cbind(worst.case, best.case)
+  best.case <- (alpha + 50 * 0.9 * theta) / (theta * 0.9 + lambda + alpha) * exp(-0.1*lambda)
 }
 
 
@@ -336,17 +344,17 @@ equalityPoint <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
 baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
   
   ws.prediction <- alpha/(alpha + lambda + theta*p) + 
-    theta*p/(alpha + lambda + theta*p)*((1 - omega)*(burst.size.A - 1) + 
-                                          omega*((burst.size.A - 1) + 1)*(alpha/(alpha + lambda + theta*p) + 
-                                                                            (burst.size.A - 1)*theta*p/(alpha + lambda + theta*p)))
-  
+    theta*p/(alpha + lambda + theta*p)*((1 - omega)*(burst.size.A) + 
+                                          omega*(burst.size.A)*(alpha/(alpha + lambda + theta*p) + 
+                                                                  burst.size.A*theta*p/(alpha + lambda + theta*p)))
   wg.prediction <- alpha/(alpha + lambda + theta) + 
-    theta*p/(alpha + lambda + theta)*((1 - omega)*(burst.size.A - 1) + 
-                                        omega*((burst.size.A - 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                          theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1)))) +
-    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst.sizes.B - 1) + 
-                                              omega*((burst.sizes.B - 1) + 1)*(alpha/(alpha + lambda + theta) + 
-                                                                                theta/(alpha + lambda + theta) * (p * (burst.size.A - 1) + (1 - p) * (burst.sizes.B- 1))))
+    theta*p/(alpha + lambda + theta)*((1 - omega)*(burst.size.A) + 
+                                        omega*(burst.size.A)*(alpha/(alpha + lambda + theta) + 
+                                                                theta/(alpha + lambda + theta) * (p * (burst.size.A) + (1 - p) * (burst.sizes.B)))) +
+    theta*(1 - p)/(alpha + lambda + theta)*((1 - omega)*(burst.sizes.B) + 
+                                              omega*(burst.sizes.B)*(alpha/(alpha + lambda + theta) + 
+                                                                       theta/(alpha + lambda + theta) * (p * (burst.size.A) + (1 - p) * (burst.sizes.B))))
+  
   data <- cbind(ws.prediction, wg.prediction)
   
   # plot(x=burst.sizes.B, y=data[,2], type='l', col='firebrick', lwd=1.5, ylab="fitness")
