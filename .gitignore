@@ -2,3 +2,6 @@
 *.txt
 data/base/*
 data/bootstrapped/*
+
+# Ignoring plots that aren't directly used or of use
+plots/other/*
