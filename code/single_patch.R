@@ -378,16 +378,7 @@ plotBaseSimulation <- function(base, colors=c('firebrick', 'darkorchid4')) {
   if(max(current.ws) > y.max) y.max <- max(current.ws)
   
   y.min <- min(current.wg)
-  # total <- data.frame(rbind(current.wg, current.ws))
-  # total$x <- burst.sizes.B
-  # names(total) <- c("fitness", "type", "x")
-  # suppressMessages(library('ggplot2'))
-  # plot <- ggplot(total, aes(x=x, y=fitness, color=type, group=type)) +
-  #   geom_line() +
-  #   scale_y_continuous(n.breaks=8) +
-  #   theme_classic()
-  # return(plot)
-  
+
   plot(y=current.ws, x=burst.sizes.B, type='p', col=colors[1], 
        xlim=c(1, length(current.ws)), ylim=c(0, y.max), lwd=1.5, ylab="fitness",
        xlab="burst.sizes.B", cex.lab = .75, pch=6)
