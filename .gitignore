@@ -1,3 +1,4 @@
 # Ignoring plotting data due to size constraints
 *.txt
+*.zip
 
