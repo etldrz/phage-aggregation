@@ -389,7 +389,7 @@ plotBaseSimulation <- function(base, colors=c('firebrick', 'darkorchid4')) {
   # return(plot)
   
   plot(y=current.ws, x=burst.sizes.B, type='p', col=colors[1], 
-       xlim=c(1, length(current.ws)), ylim=c(y.min, y.max), lwd=1.5, ylab="fitness",
+       xlim=c(1, length(current.ws)), ylim=c(0, y.max), lwd=1.5, ylab="fitness",
        xlab="burst.sizes.B", cex.lab = .75, pch=6)
   points(y=current.wg, x=burst.sizes.B, col=colors[2], lwd=1.5, pch=6)
   #legend('topleft', legend=c("WS","WG"), fill=colors)
