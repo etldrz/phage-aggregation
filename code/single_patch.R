@@ -206,7 +206,8 @@ rStar <- function(file, current.changing) {
   upper.pair <- NULL
   lower.burst.B <- NULL
   upper.burst.B <- NULL
-  r.stars <- c()
+  r.stars <- NULL
+  nB <- NULL
   
   # Finding the lower bound
   while(is.null(lower.pair)){
@@ -244,10 +245,15 @@ rStar <- function(file, current.changing) {
   }
   
   # equalityPoint() finds the point where the slope of W.G equals W.S
-  if(is.null(r.stars)) r.stars <- mapply(equalityPoint, 
-                                         lower.burst.B, lower.pair[,2], 
-                                         lower.pair[,1], upper.burst.B, 
-                                         upper.pair[,1], upper.pair[,2])
+  if(is.null(r.stars)){
+    nB <- mapply(equalityPoint, 
+                 lower.burst.B, lower.pair[,2], 
+                 lower.pair[,1], upper.burst.B, 
+                 upper.pair[,1], upper.pair[,2])
+    r.stars <- nB / (burst.size.A - 1)
+  }
+  
+
   
   quant <- quantile(r.stars, probs=c(0.025, 0.975))
   lower.quantile <- quant[1]
@@ -260,7 +266,7 @@ rStar <- function(file, current.changing) {
                changing.value = current.changing, lower.quantile = lower.quantile, 
                upper.quantile = upper.quantile, 
                swap.count.lower = attributes(lower.pair)$swap.count, 
-               swap.count.upper = attributes(upper.pair)$swap.count)
+               swap.count.upper = attributes(upper.pair)$swap.count, nB = nB)
   return(data)
 }
 
@@ -334,7 +340,9 @@ equalityPoint <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
   # Now solving g.slope*x + g.intercept = s.slope*x + s.intercept
   x <- (s.intercept - g.intercept) / (g.slope - s.slope)
   
-  return((x - 1) / (burst.size.A - 1)) # Dividing nB by nA will return R*
+  return(x - 1)
+  
+  #return((x - 1) / (burst.size.A - 1)) # Dividing nB by nA will return R*
 }
 
 

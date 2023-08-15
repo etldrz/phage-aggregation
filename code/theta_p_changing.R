@@ -60,6 +60,18 @@ total.tp <- cbind(total.tp, p=c(.1, .1, .5, .5, .9, .9))
 total.tp <- cbind(total.tp, prediction =
                     complexSimPrediction(alpha, rep(c(0.08, 0.8), 3),
                                          c(.1, .1, .5, .5, .9, .9), lambda))
+total.tp <- cbind(total.tp, predicted.nB = 
+                    total.tp[,6] * (burst.size.A - 1))
+
+data <- c()
+data <- c(data, (total.tp[1,7] - mean(fit.first.tp[[1]][[14]])))
+data <- c(data, (total.tp[2,7] - mean(fit.first.tp[[2]][[14]])))
+data <- c(data, (total.tp[3,7] - mean(fit.second.tp[[1]][[14]])))
+data <- c(data, (total.tp[4,7] - mean(fit.second.tp[[2]][[14]])))
+data <- c(data, (total.tp[5,7] - mean(fit.third.tp[[1]][[14]])))
+data <- c(data, (total.tp[6,7] - mean(fit.third.tp[[2]][[14]])))
+
+total.tp <- cbind(total.tp, difference = data)
 
 title.txt <- paste("alpha:", alpha, "lambda:", lambda, "omega:", omega)
 
@@ -75,4 +87,4 @@ plot.tp <- ggplot(total.tp, aes(x=theta, y=r.star.mean, group=factor(p),
   labs(color = "p") +
   ggtitle(title.txt)
 
-plot.tp
+total.tp
