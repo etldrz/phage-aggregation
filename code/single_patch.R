@@ -305,7 +305,7 @@ swap <- function(data){
         # Swapping the first column of the two rows
         temp <- current.viable[1]
         data[rand,1] <- overlap[1]
-        data[to.fix[index],1] <- temp
+        data[index,1] <- temp
         
         to.fix.size <- to.fix.size - 1
         
@@ -335,8 +335,7 @@ equalityPoint <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
   
   g.intercept <- min.wg - (g.slope * min.x)
   s.intercept <- min.ws - (s.slope * min.x)
-  
-  
+
   # Now solving g.slope*x + g.intercept = s.slope*x + s.intercept
   x <- (s.intercept - g.intercept) / (g.slope - s.slope)
   
@@ -388,10 +387,10 @@ plotBaseSimulation <- function(base, colors=c('firebrick', 'darkorchid4')) {
   
   y.min <- min(current.wg)
 
-  plot(y=current.ws, x=burst.sizes.B, type='p', col=colors[1], 
-       xlim=c(1, length(current.ws)), ylim=c(0, y.max), lwd=1.5, ylab="fitness",
-       xlab="burst.sizes.B", cex.lab = .75, pch=6)
-  points(y=current.wg, x=burst.sizes.B, col=colors[2], lwd=1.5, pch=6)
+  plot(y=current.ws, x=burst.sizes.B, type='l', col=colors[1], 
+       xlim=c(1, length(current.ws)), ylim=c(y.min, y.max), lwd=1.5, ylab="fitness",
+       xlab="burst.sizes.B", cex.lab = .75)
+  lines(y=current.wg, x=burst.sizes.B, col=colors[2], lwd=1.5)
   #legend('topleft', legend=c("WS","WG"), fill=colors)
 }
 
