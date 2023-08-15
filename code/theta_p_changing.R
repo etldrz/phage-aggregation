@@ -61,7 +61,7 @@ total.tp <- cbind(total.tp, prediction =
                     complexSimPrediction(alpha, rep(c(0.08, 0.8), 3),
                                          c(.1, .1, .5, .5, .9, .9), lambda))
 total.tp <- cbind(total.tp, predicted.nB = 
-                    total.tp[,6] * (burst.size.A - 1))
+                    total.tp[,6] * (burst.size.A - 1) + 1)
 
 data <- c()
 data <- c(data, (total.tp[1,7] - mean(fit.first.tp[[1]][[14]])))
