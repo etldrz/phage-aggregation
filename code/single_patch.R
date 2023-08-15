@@ -271,11 +271,18 @@ rStar <- function(file, current.changing) {
 #' than the first is considered to be overlap.
 swap <- function(data){
   
-  # Vector of locations inside data where the second column is > than the first
+  # Vector of locations inside data where the second column is >= than the first
   to.fix <- which(data[,1] <= data[,2])
+
+  # One is subtracted from this every time a successful swap happens; if it 
+  #   reaches 0 then the algorithm is successful and the newly made matrix is returned.
   to.fix.size <- length(to.fix)
   
-  if(to.fix.size == 0) return(data)
+  # If the algorithm is successful, then this number is saved as an attribute
+  #   of the returned matrix.
+  swap.count <- length(to.fix)
+  
+  if(swap.count == 0) return(data)
   
   
   for(index in to.fix){
@@ -285,13 +292,10 @@ swap <- function(data){
     # Locations that could potentially swap with the current overlap row
     viable <- which(!1:nrow(data) %in% to.fix)
     
-    # Records how many times a redraw happens
-    count <- 1 
-    
     while(length(viable) > 0){
       
       rand <- sample(viable, 1)
-      
+
       current.viable <- data[rand,]
       
       if(current.viable[1] > overlap[2] & overlap[1] > current.viable[2]){
@@ -299,21 +303,21 @@ swap <- function(data){
         # Swapping the first column of the two rows
         temp <- current.viable[1]
         data[rand,1] <- overlap[1]
-        data[to.fix[index],1] <- temp
+        data[index,1] <- temp
         
         to.fix.size <- to.fix.size - 1
         
-        if(to.fix.size > 0){
-          break
-        }
-        attributes(data)$swap.count <- count
+        if(to.fix.size > 0) break
+        
+        attributes(data)$swap.count <- swap.count
         return(data)
       }
+      
       # If the above block does not trigger, then viable will be updated
       # to exclude the just-used random selection
       viable <- viable[which(!viable %in% rand)]
-      count <- count + 1
-    }
+
+    } # end of while
   }
   return(NULL) # If the algorithm does not generate a viable matrix
 }
