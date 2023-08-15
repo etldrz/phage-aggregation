@@ -365,6 +365,7 @@ baseSimPrediction <- function(alpha, theta, p, lambda, omega) {
 }
 
 
+#' As per the model of the paper
 complexSimPrediction <- function(alpha, theta, p, lambda){ 1 / (1 + (alpha + lambda) / (theta * p)) }
 
 
