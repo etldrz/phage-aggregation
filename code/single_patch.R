@@ -4,6 +4,7 @@ reps <- 5e5 # how large each fitness vector is
 bt.size <- 1e4 # the size of the bootstrapped fitness vector
 allowed.overlap <- 0.01 # proportion of allowed overlap between bootstrapped vectors
 
+diver <- matrix(ncol=5)
 
 
 #' #' Helper function used throughout
@@ -338,6 +339,12 @@ equalityPoint <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
 
   # Now solving g.slope*x + g.intercept = s.slope*x + s.intercept
   x <- (s.intercept - g.intercept) / (g.slope - s.slope)
+  
+  data <- c(g.slope=g.slope, g.intercept=g.intercept, s.slope=s.slope,
+            s.intercept=s.intercept, nB=(x-1))
+  
+  
+  diver <<- rbind(diver, data)
   
   return(x - 1)
   
