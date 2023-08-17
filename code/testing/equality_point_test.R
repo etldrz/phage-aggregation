@@ -24,11 +24,13 @@ foo <- function(choice){
     lines(x=x, y=(x*c[3] + c[4]), col='black', lwd=1)
   }
   
-  abline(v=c(min(diver[lim[1]:lim[2],5] + 1), max(diver[lim[1]:lim[2],5] + 1)), col='red')
-  abline(v=total.tp[1,7], col='black')
+  tot.loc <- 1
+  if(lim[1] > 1e4) tot.loc <- 2
   
-  #legend('topleft' legend=pa)
+  abline(v=c(min(diver[lim[1]:lim[2],5] + 1), max(diver[lim[1]:lim[2],5] + 1)), col='red')
+  abline(v=total.tp[tot.loc,7] + 1, col='black')
+  
 }
 
-foo('lower')
+foo('upper')
 

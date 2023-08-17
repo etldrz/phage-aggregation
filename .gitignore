@@ -8,3 +8,4 @@ plots/other/*
 
 # Ignoring misc
 data/desktop.ini
+*.Rhistory
