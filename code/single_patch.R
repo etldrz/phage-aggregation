@@ -193,7 +193,7 @@ rStar <- function(file, current.changing) {
   for(i in 1:ncol(g)){
     s.greater <- which(s[,i] > g[,i])
     g.greater <- which(g[,i] > s[,i])
-    
+    # i - 1
     if(1 - (length(s.greater) / nrow(boot)) <= allowed.overlap){
       viable.lower <- c(viable.lower, i)
     }
@@ -244,7 +244,7 @@ rStar <- function(file, current.changing) {
     upper.pair <- swap(cbind(g[,upper.burst.B], s[,upper.burst.B]))
     viable.upper <- viable.upper[!viable.upper %in% upper.burst.B]
   }
-  
+
   # equalityPoint() finds the point where the slope of W.G equals W.S
   if(is.null(r.stars)){
     nB <- mapply(equalityPoint, 
