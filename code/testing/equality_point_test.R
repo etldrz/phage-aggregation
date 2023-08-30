@@ -13,7 +13,7 @@ foo <- function(choice){
     lim <- c(1e4 + 1, 2e4)
   }
   
-  x <- seq(1, 52, by=.1)
+  x <- seq(1, 52, by=50)
   plot(NA, xlim=c(mean(diver[lim[1]:lim[2],5] + 1) - 3, mean(diver[lim[1]:lim[2],5] + 1) + 3), 
        ylim=c(miny, maxy))
   
@@ -27,10 +27,9 @@ foo <- function(choice){
   tot.loc <- 1
   if(lim[1] > 1e4) tot.loc <- 2
   
-  abline(v=c(min(diver[lim[1]:lim[2],5] + 1), max(diver[lim[1]:lim[2],5] + 1)), col='red')
+  abline(v=c(min(diver[lim[1]:lim[2],5]), max(diver[lim[1]:lim[2],5])), col='red')
   abline(v=total.tp[tot.loc,7] + 1, col='black')
   
 }
 
 foo('upper')
-
