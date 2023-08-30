@@ -194,10 +194,10 @@ rStar <- function(file, current.changing) {
     g.greater <- which(g[,i] > s[,i])
     
     if(1 - (length(s.greater) / nrow(boot)) <= allowed.overlap){
-      viable.lower <- c(viable.lower, i)
+      viable.lower <- c(viable.lower, i - 1) # subtracting one because burst.sizes.B starts at 0
     }
     else if(1 - (length(g.greater) / nrow(boot)) <= allowed.overlap){
-      viable.upper <- c(viable.upper, i)
+      viable.upper <- c(viable.upper, i - 1)
     }
   }
   
