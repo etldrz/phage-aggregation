@@ -24,6 +24,8 @@ viableParams <- function(alpha, theta, lambda) {
   worst.case <- (alpha + 50 * 0.1 * theta) / (theta * 0.1 + lambda + alpha) * exp(-10*lambda)
   
   best.case <- (alpha + 50 * 0.9 * theta) / (theta * 0.9 + lambda + alpha) * exp(-0.1*lambda)
+  
+  return(data.frame(worst.case, best.case))
 }
 
 
@@ -186,7 +188,6 @@ rStar <- function(file, current.changing) {
   # R* can be found
   viable.lower <- c()
   viable.upper <- c()
-  
   # For each column in the pair of matrices, find the proportion of overlap and 
   # add it to the appropriate container if it is less than or equal to allowed.overlap
   for(i in 1:ncol(g)){
@@ -194,11 +195,13 @@ rStar <- function(file, current.changing) {
     g.greater <- which(g[,i] > s[,i])
     
     if(1 - (length(s.greater) / nrow(boot)) <= allowed.overlap){
-      viable.lower <- c(viable.lower, i - 1) # subtracting one because burst.sizes.B starts at 0
+      viable.lower <- c(viable.lower, i)
     }
     else if(1 - (length(g.greater) / nrow(boot)) <= allowed.overlap){
-      viable.upper <- c(viable.upper, i - 1)
+      viable.upper <- c(viable.upper, i)
     }
+    
+    print(c(i, burst.sizes.B[i]))
   }
   
   # Upper and lower points used to calculate R* via the linear slope equation
@@ -245,8 +248,8 @@ rStar <- function(file, current.changing) {
   
   # equalityPoint() finds the point where the slope of W.G equals W.S
   if(is.null(r.stars)) r.stars <- mapply(equalityPoint, 
-                                         lower.burst.B, lower.pair[,2], 
-                                         lower.pair[,1], upper.burst.B, 
+                                         lower.burst.B - 1, lower.pair[,2], 
+                                         lower.pair[,1], upper.burst.B - 1, 
                                          upper.pair[,1], upper.pair[,2])
   
   quant <- quantile(r.stars, probs=c(0.025, 0.975))
