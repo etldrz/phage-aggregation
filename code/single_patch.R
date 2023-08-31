@@ -200,8 +200,6 @@ rStar <- function(file, current.changing) {
     else if(1 - (length(g.greater) / nrow(boot)) <= allowed.overlap){
       viable.upper <- c(viable.upper, i)
     }
-    
-    print(c(i, burst.sizes.B[i]))
   }
   
   # Upper and lower points used to calculate R* via the linear slope equation
@@ -248,8 +246,8 @@ rStar <- function(file, current.changing) {
   
   # equalityPoint() finds the point where the slope of W.G equals W.S
   if(is.null(r.stars)) r.stars <- mapply(equalityPoint, 
-                                         lower.burst.B - 1, lower.pair[,2], 
-                                         lower.pair[,1], upper.burst.B - 1, 
+                                         burst.sizes.B[lower.burst.B], lower.pair[,2], 
+                                         lower.pair[,1], burst.sizes.B[upper.burst.B], 
                                          upper.pair[,1], upper.pair[,2])
   
   quant <- quantile(r.stars, probs=c(0.025, 0.975))
