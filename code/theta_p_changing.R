@@ -83,15 +83,12 @@ runit <- function(){
 }
 
 alpha <- 0.1; thetas <- c(0.08, 0.8); ps <- c(0.1, 0.5, 0.9); lambda <- .1; omega <- 0
-runit()
+a <- runit()
 
 
 alpha <- 0.1; thetas <- c(0.08, 0.8); ps <- c(0.1, 0.5, 0.9); lambda <- .1; omega <- .1
-runit()
+b <- runit()
 
 alpha <- 0.1; thetas <- c(0.08, 0.8); ps <- c(0.1, 0.5, 0.9); lambda <- .1; omega <- .25
-runit()
+c <- runit()
 
-
-
-plot.tp
