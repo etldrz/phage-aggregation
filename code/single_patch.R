@@ -184,6 +184,7 @@ rStar <- function(file, current.changing) {
   s <- boot[,seq(1, ncol(boot), 2)]
   g <- boot[,seq(2, ncol(boot), 2)]
   
+  
   # Containers for possibly useful upper/lower bounds in the file from which
   # R* can be found
   viable.lower <- c()
@@ -391,9 +392,9 @@ plotBaseSimulation <- function(base, colors=c('firebrick', 'darkorchid4')) {
   y.min <- min(current.wg)
 
   plot(y=current.ws, x=burst.sizes.B, type='p', col=colors[1], 
-       xlim=c(1, length(current.ws)), ylim=c(y.min, y.max), lwd=1.5, ylab="fitness",
-       xlab="burst.sizes.B", cex.lab = .75, pch=6)
-  points(y=current.wg, x=burst.sizes.B, col=colors[2], lwd=1.5, pch=6)
+       xlim=c(1, length(current.ws)), ylim=c(y.min, y.max), lwd=1, ylab="fitness",
+       xlab="burst.sizes.B", cex.lab = .75, pch=16)
+  points(y=current.wg, x=burst.sizes.B, col=colors[2], lwd=1, pch=16)
   #legend('topleft', legend=c("WS","WG"), fill=colors)
 }
 

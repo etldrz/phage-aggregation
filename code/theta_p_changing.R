@@ -2,7 +2,7 @@ source('single_patch.R')
 
 library(foreach)
 library(ggplot2)
-library(wesanderson)
+library(viridis)
 
 base.file <- "C:/Users/Evan/Desktop/repos/phage-aggregation/data/base/"
 boot.file <- "C:/Users/Evan/Desktop/repos/phage-aggregation/data/bootstrapped/"
@@ -60,22 +60,23 @@ plot.3.tp <- plotFitness(fit.third.tp, FALSE)
 total.tp <- rbind(plot.1.tp, plot.2.tp, plot.3.tp)
 total.tp <- cbind(total.tp, p=rep(c(.1, .5, .9), each=5))
 total.tp <- cbind(total.tp, prediction =
-                    complexSimPrediction(alpha, rep(c(0.05, 0.2, 0.35, 0.5, 0.75), 3),
-                                         rep(c(.1, .5, .9), each=5), lambda))
+                    complexSimPrediction(alpha=alpha, 
+                                         theta=rep(c(0.05, 0.2, 0.35, 0.5, 0.75), 3),
+                                         p=rep(c(.1, .5, .9), each=5), lambda=lambda))
 
 title.txt <- paste("alpha:", alpha, "lambda:", lambda, "omega:", omega)
 
 
 
-plot.tp <- ggplot(total.tp, aes(x=theta, y=r.star.mean, group=factor(p),
-                                color=factor(p))) +
-  geom_line(aes(x=theta, y=prediction), linetype='longdash', alpha=0.9) +
-  geom_line() +
-  geom_point(size=1) +
-  geom_errorbar(aes(ymin=lower.quantile, ymax=upper.quantile), width=0.002,
-                alpha=0.75) +
-  scale_color_manual(values=wes_palette(n=3, name="Darjeeling1")) +
-  theme_classic() +
-  labs(color = "p") +
-  ylim(0, 1) +
-  ggtitle(title.txt)
+# plot.tp <- ggplot(total.tp, aes(x=theta, y=r.star.mean, group=factor(p),
+#                                 color=factor(p))) +
+#   geom_line(aes(x=theta, y=prediction), linetype='solid', alpha=0.9) +
+#   geom_line(linetype='longdash') +
+#   geom_point(size=1) +
+#   geom_errorbar(aes(ymin=lower.quantile, ymax=upper.quantile), width=0.002,
+#                 alpha=0.75) +
+#   scale_fill_viridis() +
+#   theme_classic() +
+#   labs(color = "p") +
+#   ylim(0, 1) +
+#   ggtitle(title.txt)

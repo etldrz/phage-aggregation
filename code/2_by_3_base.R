@@ -19,3 +19,6 @@ mapply(function(x, theta, p) {
 
 title <- paste("alpha:", alpha, "lambda:", lambda, "omega:", omega, sep=" ")
 mtext(title, side=3, line=-2, outer=TRUE)
+
+
+
