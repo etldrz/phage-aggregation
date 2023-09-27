@@ -65,12 +65,11 @@ prediction.p2 <- complexSimPrediction(alpha, theta.prediction.data, ps[2], lambd
 prediction.p3 <- complexSimPrediction(alpha, theta.prediction.data, ps[3], lambda)
 
 
-title.txt <- paste("alpha:", alpha, "lambda:", lambda, "omega:", omega)
 
 cols=c('darkorchid4', 'darkorange3', 'darkblue')
 
 #simulated points
-plot(y=plot.p1.tp[,1], x=plot.p1.tp[,4], type='p', ylab="R*", xlab="\U03B8",
+plot(y=plot.p1.tp[,1], x=plot.p1.tp[,4], type='p', ylab="R*", xlab="\U03B8", cex.lab=1.3,
      ylim=c(0, 1), xlim=c(0.05, 0.75), pch=16, cex=1.15, col=cols[1])
 points(y=plot.p2.tp[,1], x=plot.p2.tp[,4], pch=16, cex=1.15, col=cols[2])
 points(y=plot.p3.tp[,1], x=plot.p3.tp[,4], pch=16, cex=1.15, col=cols[3])
@@ -98,6 +97,7 @@ lines(y=prediction.p2, x=theta.prediction.data, col=cols[2], lty='dashed', lwd=1
 lines(y=prediction.p3, x=theta.prediction.data, col=cols[3], lty='dashed', lwd=1.7)
 legend('topleft', legend=c("p = 0.1", "p = 0.5", "p = 0.9"), 
        fill=c(cols[1], cols[2], cols[3]), border='white', bty='n')
+
 
 line2user <- function(line, side) {
   lh <- par('cin')[2] * par('cex') * par('lheight') - .14

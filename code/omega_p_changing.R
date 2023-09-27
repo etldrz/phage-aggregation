@@ -65,7 +65,7 @@ title.txt <- paste("alpha:", alpha,  "theta:", theta, "lambda:", lambda)
 cols=c('darkorchid4', 'darkorange3', 'darkblue')
 
 #simulated points
-plot(y=plot.p1.op[,1], x=plot.p1.op[,4], type='p', ylab="R*", xlab="\U03C9",
+plot(y=plot.p1.op[,1], x=plot.p1.op[,4], type='p', ylab="R*", xlab="\U03C9", cex.lab=1.5,
      ylim=c(0, 1), xlim=c(0.05, 0.75), pch=16, cex=1.15, col=cols[1])
 points(y=plot.p2.op[,1], x=plot.p2.op[,4], pch=16, cex=1.15, col=cols[2])
 points(y=plot.p3.op[,1], x=plot.p3.op[,4], pch=16, cex=1.15, col=cols[3])
@@ -93,6 +93,7 @@ lines(y=rep(prediction.p2, 5), x=plot.p1.op$omega, col=cols[2], lty='dashed', lw
 lines(y=rep(prediction.p3, 5), x=plot.p1.op$omega, col=cols[3], lty='dashed', lwd=1.7)
 legend('topleft', legend=c("p = 0.1", "p = 0.5", "p = 0.9"), 
        fill=c(cols[1], cols[2], cols[3]), border='white', bty='n')
+
 
 line2user <- function(line, side) {
   lh <- par('cin')[2] * par('cex') * par('lheight') - .14
