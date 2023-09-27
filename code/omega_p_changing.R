@@ -48,33 +48,69 @@ first.op <- boot.files.op[c(1, 4, 7, 10, 13)]
 second.op <- boot.files.op[c(2, 5, 8, 11, 14)]
 third.op <- boot.files.op[c(3, 6, 9, 12, 15)]
 
-fit.first.op <- preprocessed(first.op, omegas, "omega")
-fit.second.op <- preprocessed(second.op, omegas, "omega")
-fit.third.op <- preprocessed(third.op, omegas, "omega")
+# fit.first.op <- preprocessed(first.op, omegas, "omega")
+# fit.second.op <- preprocessed(second.op, omegas, "omega")
+# fit.third.op <- preprocessed(third.op, omegas, "omega")
 
-plot.1.op <- plotFitness(fit.first.op, FALSE)
-plot.2.op <- plotFitness(fit.second.op, FALSE)
-plot.3.op <- plotFitness(fit.third.op, FALSE)
+plot.p1.op <- cbind(plotFitness(fit.first.op, FALSE), p=p[1])
+plot.p2.op <- cbind(plotFitness(fit.second.op, FALSE), p=p[2])
+plot.p3.op <- cbind(plotFitness(fit.third.op, FALSE), p=p[3])
 
-total.op <- rbind(plot.1.op, plot.2.op, plot.3.op)
-total.op <- cbind(total.op, p=rep(c(.1, .5, .9), each=5))
-total.op <- cbind(total.op, prediction =
-                    complexSimPrediction(alpha=alpha, theta=theta,
-                                         p=rep(c(.1, .5, .9), each=5), lambda=lambda))
+prediction.p1 <- complexSimPrediction(alpha, theta, ps[1], lambda)
+prediction.p2 <- complexSimPrediction(alpha, theta, ps[2], lambda)
+prediction.p3 <- complexSimPrediction(alpha, theta, ps[3], lambda)
 
 title.txt <- paste("alpha:", alpha,  "theta:", theta, "lambda:", lambda)
 
-# 
-# 
-# plot.op <- ggplot(total.op, aes(x=omega, y=r.star.mean, group=factor(p),
-#                                 color=factor(p))) +
-#   geom_line(aes(x=omega, y=prediction), linetype='solid', alpha=0.9) +
-#   geom_line(linetype='longdash') +
-#   geom_point(size=1) +
-#   geom_errorbar(aes(ymin=lower.quantile, ymax=upper.quantile), width=0.002,
-#                 alpha=0.75) +
-#   scale_fill_viridis(option="A") +
-#   theme_classic() +
-#   labs(color = "p") + 
-#   ylim(0, 1) +
-#   ggtitle(title.txt)
+cols=c('darkorchid4', 'darkorange3', 'darkblue')
+
+#simulated points
+plot(y=plot.p1.op[,1], x=plot.p1.op[,4], type='p', ylab="R*", xlab="\U03C9",
+     ylim=c(0, 1), xlim=c(0.05, 0.75), pch=16, cex=1.15, col=cols[1])
+points(y=plot.p2.op[,1], x=plot.p2.op[,4], pch=16, cex=1.15, col=cols[2])
+points(y=plot.p3.op[,1], x=plot.p3.op[,4], pch=16, cex=1.15, col=cols[3])
+
+#error bars
+for(i in 1:nrow(plot.p1.op)){
+  arrows(y0=plot.p1.op$lower.quantile[i], x0=plot.p1.op$omega[i], 
+         y1=plot.p1.op$upper.quantile[i], x1=plot.p1.op$omega[i], length=0, code=3, angle=90,
+         col=cols[1], lwd=1.7)
+}
+for(i in 1:nrow(plot.p2.op)){
+  arrows(y0=plot.p2.op$lower.quantile[i], x0=plot.p2.op$omega[i], 
+         y1=plot.p2.op$upper.quantile[i], x1=plot.p2.op$omega[i], length=0, code=3, angle=90,
+         col=cols[2], lwd=1.7)
+}
+for(i in 1:nrow(plot.p3.op)){
+  arrows(y0=plot.p3.op$lower.quantile[i], x0=plot.p3.op$omega[i], 
+         y1=plot.p3.op$upper.quantile[i], x1=plot.p3.op$omega[i], length=0, code=3, angle=90,
+         col=cols[3], lwd=1.7)
+}
+
+#prediction lines
+lines(y=rep(prediction.p1, 5), x=plot.p1.op$omega, col=cols[1], lty='dashed', lwd=1.7)
+lines(y=rep(prediction.p2, 5), x=plot.p1.op$omega, col=cols[2], lty='dashed', lwd=1.7)
+lines(y=rep(prediction.p3, 5), x=plot.p1.op$omega, col=cols[3], lty='dashed', lwd=1.7)
+legend('topleft', legend=c("p = 0.1", "p = 0.5", "p = 0.9"), 
+       fill=c(cols[1], cols[2], cols[3]), border='white', bty='n')
+
+line2user <- function(line, side) {
+  lh <- par('cin')[2] * par('cex') * par('lheight') - .14
+  x_off <- diff(grconvertX(c(0, lh), 'inches', 'npc'))
+  y_off <- diff(grconvertY(c(0, lh), 'inches', 'npc'))
+  switch(side,
+         `1` = grconvertY(-line * y_off, 'npc', 'user'),
+         `2` = grconvertX(-line * x_off, 'npc', 'user'),
+         `3` = grconvertY(1 + line * y_off, 'npc', 'user'),
+         `4` = grconvertX(1 + line * x_off, 'npc', 'user'),
+         stop("Side must be 1, 2, 3, or 4", call.=FALSE))
+}
+
+addfiglab <- function(lab, xl = par()$mar[2], yl = par()$mar[3]) {
+  
+  text(x = line2user(xl, 2), y = line2user(yl, 3), 
+       lab, xpd = NA, font = 2, cex = 1.5, adj = c(0, 1))
+  
+}
+
+addfiglab("B")

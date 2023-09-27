@@ -49,34 +49,73 @@ first.tp <- boot.files.tp[c(1, 4, 7, 10, 13)]
 second.tp <- boot.files.tp[c(2, 5, 8, 11, 14)]
 third.tp <- boot.files.tp[c(3, 6, 9, 12, 15)]
 
-fit.first.tp <- preprocessed(first.tp, thetas, "theta")
-fit.second.tp <- preprocessed(second.tp, thetas, "theta")
-fit.third.tp <- preprocessed(third.tp, thetas, "theta")
+# fit.first.tp <- preprocessed(first.tp, thetas, "theta")
+# fit.second.tp <- preprocessed(second.tp, thetas, "theta")
+# fit.third.tp <- preprocessed(third.tp, thetas, "theta")
 
-plot.1.tp <- plotFitness(fit.first.tp, FALSE)
-plot.2.tp <- plotFitness(fit.second.tp, FALSE)
-plot.3.tp <- plotFitness(fit.third.tp, FALSE)
+plot.p1.tp <- cbind(plotFitness(fit.first.tp, FALSE), p=ps[1])
+plot.p2.tp <- cbind(plotFitness(fit.second.tp, FALSE), p=ps[2])
+plot.p3.tp <- cbind(plotFitness(fit.third.tp, FALSE), p=ps[3])
 
-total.tp <- rbind(plot.1.tp, plot.2.tp, plot.3.tp)
-total.tp <- cbind(total.tp, p=rep(c(.1, .5, .9), each=5))
-total.tp <- cbind(total.tp, prediction =
-                    complexSimPrediction(alpha=alpha, 
-                                         theta=rep(c(0.05, 0.2, 0.35, 0.5, 0.75), 3),
-                                         p=rep(c(.1, .5, .9), each=5), lambda=lambda))
+
+
+theta.prediction.data <- seq(from=0.05, to=0.75, by=0.01)
+prediction.p1 <- complexSimPrediction(alpha, theta.prediction.data, ps[1], lambda)
+prediction.p2 <- complexSimPrediction(alpha, theta.prediction.data, ps[2], lambda)
+prediction.p3 <- complexSimPrediction(alpha, theta.prediction.data, ps[3], lambda)
+
 
 title.txt <- paste("alpha:", alpha, "lambda:", lambda, "omega:", omega)
 
+cols=c('darkorchid4', 'darkorange3', 'darkblue')
 
+#simulated points
+plot(y=plot.p1.tp[,1], x=plot.p1.tp[,4], type='p', ylab="R*", xlab="\U03B8",
+     ylim=c(0, 1), xlim=c(0.05, 0.75), pch=16, cex=1.15, col=cols[1])
+points(y=plot.p2.tp[,1], x=plot.p2.tp[,4], pch=16, cex=1.15, col=cols[2])
+points(y=plot.p3.tp[,1], x=plot.p3.tp[,4], pch=16, cex=1.15, col=cols[3])
 
-# plot.tp <- ggplot(total.tp, aes(x=theta, y=r.star.mean, group=factor(p),
-#                                 color=factor(p))) +
-#   geom_line(aes(x=theta, y=prediction), linetype='solid', alpha=0.9) +
-#   geom_line(linetype='longdash') +
-#   geom_point(size=1) +
-#   geom_errorbar(aes(ymin=lower.quantile, ymax=upper.quantile), width=0.002,
-#                 alpha=0.75) +
-#   scale_fill_viridis() +
-#   theme_classic() +
-#   labs(color = "p") +
-#   ylim(0, 1) +
-#   ggtitle(title.txt)
+#error bars
+for(i in 1:nrow(plot.p1.tp)){
+  arrows(y0=plot.p1.tp$lower.quantile[i], x0=plot.p1.tp$theta[i], 
+         y1=plot.p1.tp$upper.quantile[i], x1=plot.p1.tp$theta[i], length=0, code=3, angle=90,
+         col=cols[1], lwd=1.7)
+}
+for(i in 1:nrow(plot.p2.tp)){
+  arrows(y0=plot.p2.tp$lower.quantile[i], x0=plot.p2.tp$theta[i], 
+         y1=plot.p2.tp$upper.quantile[i], x1=plot.p2.tp$theta[i], length=0, code=3, angle=90,
+         col=cols[2], lwd=1.7)
+}
+for(i in 1:nrow(plot.p3.tp)){
+  arrows(y0=plot.p3.tp$lower.quantile[i], x0=plot.p3.tp$theta[i], 
+         y1=plot.p3.tp$upper.quantile[i], x1=plot.p3.tp$theta[i], length=0, code=3, angle=90,
+         col=cols[3], lwd=1.7)
+}
+
+#prediction lines
+lines(y=prediction.p1, x=theta.prediction.data, col=cols[1], lty='dashed', lwd=1.7)
+lines(y=prediction.p2, x=theta.prediction.data, col=cols[2], lty='dashed', lwd=1.7)
+lines(y=prediction.p3, x=theta.prediction.data, col=cols[3], lty='dashed', lwd=1.7)
+legend('topleft', legend=c("p = 0.1", "p = 0.5", "p = 0.9"), 
+       fill=c(cols[1], cols[2], cols[3]), border='white', bty='n')
+
+line2user <- function(line, side) {
+  lh <- par('cin')[2] * par('cex') * par('lheight') - .14
+  x_off <- diff(grconvertX(c(0, lh), 'inches', 'npc'))
+  y_off <- diff(grconvertY(c(0, lh), 'inches', 'npc'))
+  switch(side,
+         `1` = grconvertY(-line * y_off, 'npc', 'user'),
+         `2` = grconvertX(-line * x_off, 'npc', 'user'),
+         `3` = grconvertY(1 + line * y_off, 'npc', 'user'),
+         `4` = grconvertX(1 + line * x_off, 'npc', 'user'),
+         stop("Side must be 1, 2, 3, or 4", call.=FALSE))
+}
+
+addfiglab <- function(lab, xl = par()$mar[2], yl = par()$mar[3]) {
+  
+  text(x = line2user(xl, 2), y = line2user(yl, 3), 
+       lab, xpd = NA, font = 2, cex = 1.5, adj = c(0, 1))
+  
+}
+
+addfiglab("A")
