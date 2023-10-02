@@ -62,7 +62,7 @@ prediction.p3 <- complexSimPrediction(alpha, theta, ps[3], lambda)
 
 title.txt <- paste("alpha:", alpha,  "theta:", theta, "lambda:", lambda)
 
-cols=c('darkorchid4', 'darkorange3', 'darkblue')
+cols=c('darkred', 'darkorange3', 'darkblue')
 
 #simulated points
 plot(y=plot.p1.op[,1], x=plot.p1.op[,4], type='p', ylab="R*", xlab="\U03C9", cex.lab=1.5,
