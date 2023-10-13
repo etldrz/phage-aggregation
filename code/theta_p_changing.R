@@ -57,14 +57,10 @@ plot.p1.tp <- cbind(plotFitness(fit.first.tp, FALSE), p=ps[1])
 plot.p2.tp <- cbind(plotFitness(fit.second.tp, FALSE), p=ps[2])
 plot.p3.tp <- cbind(plotFitness(fit.third.tp, FALSE), p=ps[3])
 
-
-
 theta.prediction.data <- seq(from=0.05, to=0.75, by=0.01)
 prediction.p1 <- complexSimPrediction(alpha, theta.prediction.data, ps[1], lambda)
 prediction.p2 <- complexSimPrediction(alpha, theta.prediction.data, ps[2], lambda)
 prediction.p3 <- complexSimPrediction(alpha, theta.prediction.data, ps[3], lambda)
-
-
 
 cols=c('darkred', 'darkorange3', 'darkblue')
 
