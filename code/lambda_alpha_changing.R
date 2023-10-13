@@ -66,7 +66,7 @@ cols=c('darkred', 'darkorange3', 'darkblue')
 
 #simulated points
 plot(y=plot.alpha1.la[,1], x=plot.alpha1.la[,4], type='p', ylab="R*", xlab="\U03BB", cex.lab=1.3,
-     ylim=c(0, 1), xlim=c(0.05, 0.75), pch=16, cex=1.15, col=cols[1])
+     ylim=c(0, 1), xlim=c(0.05, 0.75), pch=16, cex=1.15, col=cols[1], cex.lab=1.35)
 points(y=plot.alpha2.la[,1], x=plot.alpha2.la[,4], pch=16, cex=1.15, col=cols[2])
 points(y=plot.alpha3.la[,1], x=plot.alpha3.la[,4], pch=16, cex=1.15, col=cols[3])
 
