@@ -4,7 +4,7 @@ data/base/*
 data/bootstrapped/*
 
 # Ignoring plots that aren't directly used or of use
-plots/other/*
+plots/additional/*
 
 # Ignoring misc
 data/desktop.ini
