@@ -28,15 +28,15 @@ Contains code and plots for the phage-aggregation project
   - plots/complex_model_outputs/
   - patch_simulator.R
   - change_matrices.R
-  - fig_5A.R
-  - fig_5B.R
+  - figure_5A.R
+  - figure_5B.R
 
 - ### Figure 6:
   - hosts_apart.pdf
   - plots/complex_model_outputs/
   - patch_simulator.R
   - change_matrices.R
-  - fig_6.R
+  - figure_6.R
   - 
  - ### Figure S1:
   - patch_plotter.R
