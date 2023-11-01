@@ -5,44 +5,36 @@ Contains code and plots for the phage-aggregation project
 ## FIGURE CODE AND DATA
  
 - ### Figure 2:
-  - base_plot.pdf
+  - plots/base_plot.pdf
   - plots/simple_model_outputs/
-  - paper_base_plot.R
-  - single_patch.R
+  - code/main/paper_base_plot.R
+  - code/main/single_patch.R
  
 - ### Figure 3:
-  - theta_vs_p_and_lambda_vs_alpha.pdf
+  - plots/theta_and_lambda_revised.png
   - plots/simple_model_outputs/
-  - theta_p.R
-  - lambda_alpha.R
-  - single_patch.R
+  - code/main/theta_p.R
+  - code/main/lambda_alpha.R
+  - code/main/single_patch.R
 
 - ### Figure 4:
-  - omega_vs_p_changing.pdf
+  - plots/omega_revised.png
   - plots/simple_model_outputs/
-  - omega_p.R
-  - single_patch.R
+  - code/main/omega_p.R
+  - code/main/single_patch.R
  
 - ### Figure 5:
-  - two_panel_revised.pdf
+  - plots/two_panel_revised.pdf
   - plots/complex_model_outputs/
-  - patch_simulator.R
-  - change_matrices.R
-  - figure_5A.R
-  - figure_5B.R
+  - code/main/patch_simulator.R
+  - code/main/change_matrices.R
+  - code/main/figure_5A.R
+  - code/main/figure_5B.R
 
 - ### Figure 6:
-  - hosts_apart.pdf
+  - plots/hosts_apart.pdf
   - plots/complex_model_outputs/
-  - patch_simulator.R
-  - change_matrices.R
-  - figure_6.R
-  - 
- - ### Figure S1:
-  - patch_plotter.R
+  - code/main/patch_simulator.R
+  - code/main/change_matrices.R
+  - code/main/figure_6.R
 
-- ### Figure S2:
-  - plots/complex_model_outputs/
-  - patch_simulator.R
-  - change_matrices.R
-  - fig_S2.R
