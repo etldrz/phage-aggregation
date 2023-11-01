@@ -8,7 +8,6 @@ base.file <- './phage-aggregation/data/base/'
 boot.file <- './phage-aggregation/data/bootstrapped/'
 
 thetas <- c(0.05, 0.2, 0.35, 0.5, 0.75); ps <- c(0.1, 0.5, 0.9)
-
 alpha <- 0.1; lambda <- 0.01; omega <- 0
 
 boot.files.tp <- c()
