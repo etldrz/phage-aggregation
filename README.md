@@ -5,7 +5,7 @@ Contains code and plots for the phage-aggregation project
 ## FIGURE CODE AND DATA
 
 - ### Figure 1:
-  - base_diagram.png
+  - fig_1.pdf
  
 - ### Figure 2:
   - base_plot.pdf
