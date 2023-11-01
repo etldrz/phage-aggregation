@@ -1,12 +1,12 @@
 burst.size.A <- 50 # burst size of host A
 burst.sizes.B <- 0:(burst.size.A + as.integer(burst.size.A * 0.05))
+#The burst size of host B goes slightly past that of host A as an easy solution
+  #to prevent bugs.
 reps <- 1e6 # how large each fitness vector is
 bt.size <- 1e4 # the size of the bootstrapped fitness vector
 allowed.overlap <- 0.01 # proportion of allowed overlap between bootstrapped vectors
 
 
-
-#' #' Helper function used throughout
 #' #' Used to verify floating numbers
 #' floatMatch <- function(x, y) { abs(x - y) < 1e-6 }
 
@@ -14,12 +14,12 @@ allowed.overlap <- 0.01 # proportion of allowed overlap between bootstrapped vec
 viableParams <- function(alpha, theta, lambda) {
   # calculate mean fitness after finding a patch times the chance that you find one before you die.
   # want that number of be around one to be consistent with modeling a virus that could persist under these conditions.
-  # we don't specift patch density in the environment specifically, so assume that it could take anywhere from 0.1 hours to ten hours to find a patch.
-  # we also want this logic to work for the specailist across a range of possible values of p.
+  # we don't specify patch density in the environment specifically, so assume that it could take anywhere from 0.1 hours to ten hours to find a patch.
+  # we also want this logic to work for the specialist across a range of possible values of p.
   # so, the worst-case is when p is small (0.1) and patches are far apart (mean of ten hours to find one)
   # best case is when p is big (0.9) and patches are close together (mean of 0.1 hours)
-  # so, calculate aboluste fitness for both worst and best case--do they bracket one?
-  # if yes, that parameter set (theta, lambda, alpha) is potnetially vialbe
+  # so, calculate absolute fitness for both worst and best case--do they bracket one?
+  # if yes, that parameter set (theta, lambda, alpha) is potentially viable
   # if no, don't do it
   worst.case <- (alpha + 50 * 0.1 * theta) / (theta * 0.1 + lambda + alpha) * exp(-10*lambda)
   
@@ -29,14 +29,11 @@ viableParams <- function(alpha, theta, lambda) {
 }
 
 
-#' Helper function used in runChanging AND standalone function
 #' Generates two vectors representing W_S and W_G for the given parameters.
 #' Used by equilibrium simulation.
 #' RETURN: a matrix where the first column is the fitness vector for W_S and the
 #'  second is a fitness_vector for W_G
 baseSimulation <- function(alpha, theta, p, lambda, omega) {
-  
-  #Effective fitness: E(W_S) = (theta*p*W_S + alpha)/alpha + lambda + theta*p
   
   # Simulated fitnesses
   base <- c()
@@ -124,16 +121,12 @@ basicBootstrap <- function(s, g){
   
   g.means <- replicate(bt.size, sum(rmultinom(1, size, freq.g) * unique.g) / size)
   s.means <- replicate(bt.size, sum(rmultinom(1, size, freq.s) * unique.s) / size)
-  
-  # g.means <- replicate(bt.size, mean(sample(unique.g, size, replace=T, prob=freq.g)))
-  # s.means <- replicate(bt.size, mean(sample(unique.s, size, replace=T, prob=freq.s)))
-  
+
   return(cbind(s.means, g.means))
 }
 
 
-#' Returns a list with length(changing) sublists, each one of those sublists 
-#' contains 13 entries
+#' Returns a list containing all necessary data.
 #' The entry names are:
 #'  lower.bound: the burst.sizes.B point where the lower boundary was found
 #'  lower.boot.s: the bootstrapped fitness vector for S at the lower bound
@@ -339,8 +332,6 @@ equalityPoint <- function(min.x, min.wg, min.ws, max.x, max.wg, max.ws) {
   # Now solving g.slope*x + g.intercept = s.slope*x + s.intercept
   x <- (s.intercept - g.intercept) / (g.slope - s.slope)
   
-  
-  
   return((x - 1) / (burst.size.A - 1)) # Dividing nB by nA will return R*
 }
 
@@ -444,34 +435,3 @@ plotFitness <- function(fitness, generate.plot=TRUE) {
   
   return(plot)
 }
-
-
-#' Technical overview
-#' Parameters are first tested to see if they are biologically plausible via 
-#' the function viableParams. Then, a matrix of non-altered fitness data is
-#' is created by baseSimulation and then saved to a txt file. This fitness data
-#' is bootstrapped and saved to its own respective txt file. Once a desired
-#' number and set of parameters have been chosen and bootstrapped, the function
-#' preprocessed iterates through each file and calls rStar on it. rStar finds 
-#' the equilibrium point by using the linear slope equation for each matrix 
-#' where W.S equals W.G and returns that and other relevant data, such as 95%
-#' quantiles and the upper and lower bounds used for the slope equation. 
-#' preprocessed will return a list of the found values for each file.
-#' 
-#' rStar finds viable points for the linear slope equation by noting B burst 
-#' sizes (columns) where all of the generalist fitness data are greater
-#' than the specialist fitness (upper bound) and where all of the specialist
-#' fitness data are greater than the generalist fitness (lower bound). If there
-#' is a small amount of incorrect overlap, less than or equal to 1 percent, then 
-#' an algorithm which randomly swaps rows of the current pair of bootstrapped
-#' fitness vectors is called to try and reduce the amount of incorrrect overlap 
-#' to 0%. 
-#' 
-#' This swapping algorithm is called for two reasons. Firstly, to try and
-#' decrease the amount of times that a suitable upper or lower bound is not
-#' found for the linear slope equation. Secondly, to potentially offset failures
-#' of finding the actual R* value due to W.G having a nonlinear slope--the 
-#' closer that the upper and lower bounds are together, the greater the
-#' likelihood of the line segment being linear. Should an upper or lower bound
-#' not be found, the R* value is set to be 1 or 0 respectively and a note is 
-#' made on the plot.
