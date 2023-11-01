@@ -6,6 +6,7 @@ Contains code and plots for the phage-aggregation project
  
 - ### Figure 2:
   - base_plot.pdf
+  - Archived file 'alpha=0.1, theta=0.2, p=0.5, lambda=0.01, omega=0.txt'
   - paper_base_plot.R
   - single_patch.R
  
