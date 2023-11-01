@@ -37,4 +37,12 @@ Contains code and plots for the phage-aggregation project
   - patch_simulator.R
   - change_matrices.R
   - fig_6.R
+  - 
+ - ### Figure S1:
+  - patch_plotter.R
 
+- ### Figure S2:
+  - plots/complex_model_outputs/
+  - patch_simulator.R
+  - change_matrices.R
+  - fig_S2.R
