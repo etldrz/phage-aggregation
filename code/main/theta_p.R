@@ -1,11 +1,11 @@
-source('single_patch.R')
+source('./phage-aggregation/code/main/single_patch.R')
 
 library(foreach)
 library(ggplot2)
 library(viridis)
 
-base.file <- "C:/Users/Evan/Desktop/repos/phage-aggregation/data/base/"
-boot.file <- "C:/Users/Evan/Desktop/repos/phage-aggregation/data/bootstrapped/"
+base.file <- './phage-aggregation/data/base/'
+boot.file <- './phage-aggregation/data/bootstrapped/'
 
 thetas <- c(0.05, 0.2, 0.35, 0.5, 0.75); ps <- c(0.1, 0.5, 0.9)
 
@@ -25,23 +25,23 @@ for(theta in thetas) {
     base.files.tp <- c(base.files.tp, curr.base)
     boot.files.tp <- c(boot.files.tp, curr.boot)
 
-#     file.create(curr.base)
-#     file.create(curr.boot)
-#     
-#     curr.base.data <- baseSimulation(alpha, theta, p, lambda, omega)
-#     print(dim(curr.base.data))
-#     
-#     write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
-#     
-#     s <- curr.base.data[,seq(1, ncol(curr.base.data), 2)]
-#     g <- curr.base.data[,seq(2, ncol(curr.base.data), 2)]
-#     
-#     curr.boot.data <- foreach(i = 1:ncol(g), .combine='cbind') %do% {
-#       basicBootstrap(s[,i], g[,i])
-#     }
-#     print(dim(curr.boot.data))
-#     
-#     write.table(curr.boot.data, file=curr.boot, append=FALSE, quote=FALSE, sep=",")
+    file.create(curr.base)
+    file.create(curr.boot)
+
+    curr.base.data <- baseSimulation(alpha, theta, p, lambda, omega)
+    print(dim(curr.base.data))
+
+    write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
+
+    s <- curr.base.data[,seq(1, ncol(curr.base.data), 2)]
+    g <- curr.base.data[,seq(2, ncol(curr.base.data), 2)]
+
+    curr.boot.data <- foreach(i = 1:ncol(g), .combine='cbind') %do% {
+      basicBootstrap(s[,i], g[,i])
+    }
+    print(dim(curr.boot.data))
+
+    write.table(curr.boot.data, file=curr.boot, append=FALSE, quote=FALSE, sep=",")
   }
 }
 
@@ -49,9 +49,9 @@ first.tp <- boot.files.tp[c(1, 4, 7, 10, 13)]
 second.tp <- boot.files.tp[c(2, 5, 8, 11, 14)]
 third.tp <- boot.files.tp[c(3, 6, 9, 12, 15)]
 
-# fit.first.tp <- preprocessed(first.tp, thetas, "theta")
-# fit.second.tp <- preprocessed(second.tp, thetas, "theta")
-# fit.third.tp <- preprocessed(third.tp, thetas, "theta")
+fit.first.tp <- preprocessed(first.tp, thetas, "theta")
+fit.second.tp <- preprocessed(second.tp, thetas, "theta")
+fit.third.tp <- preprocessed(third.tp, thetas, "theta")
 
 plot.p1.tp <- cbind(plotFitness(fit.first.tp, FALSE), p=ps[1])
 plot.p2.tp <- cbind(plotFitness(fit.second.tp, FALSE), p=ps[2])
@@ -95,6 +95,7 @@ legend('topleft', legend=c("p = 0.1", "p = 0.5", "p = 0.9"),
        fill=c(cols[1], cols[2], cols[3]), border='white', bty='n')
 
 
+#adds figure label
 line2user <- function(line, side) {
   lh <- par('cin')[2] * par('cex') * par('lheight') - .14
   x_off <- diff(grconvertX(c(0, lh), 'inches', 'npc'))

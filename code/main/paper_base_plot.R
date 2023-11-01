@@ -1,14 +1,15 @@
-source('single_patch.R')
+source('./phage-aggregation/code/main/single_patch.R')
 
 burst.size.A <- 50
 burst.sizes.B <- 0:(burst.size.A + as.integer(burst.size.A * 0.05))
 
 
-# paper.base.plot.base <- "C:\\Users\\Evan\\Desktop\\repos\\phage-aggregation\\data\\base\\alpha=0.1, theta=0.2, p=0.5, lambda=0.01, omega=0.txt"
-# 
-# data <- read.table(paper.base.plot.base, header=TRUE, sep=",")
+base.data <- paste0("./phage-aggregation/data/base/",
+                               "alpha=0.1, theta=0.2, p=0.5, lambda=0.01, omega=0.txt")
 
-#r.star <- rStar(paper.base.plot.base, 0.2)
+data <- read.table(base.data, header=TRUE, sep=",")
+
+r.star <- rStar(base.data, 0.2)
 
 nB <- complexSimPrediction(alpha=0.1, theta=0.2, p=0.5, lambda=0.01)
 

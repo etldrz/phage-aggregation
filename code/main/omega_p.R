@@ -1,11 +1,11 @@
-source('single_patch.R')
+source('./phage-aggregation/code/main/single_patch.R')
 
 library(foreach)
 library(ggplot2)
 library(viridis)
 
-base.file <- "C:/Users/Evan/Desktop/repos/phage-aggregation/data/base/"
-boot.file <- "C:/Users/Evan/Desktop/repos/phage-aggregation/data/bootstrapped/"
+base.file <- './phage-aggregation/data/base/'
+boot.file <- './phage-aggregation/data/bootstrapped/'
 
 omegas <- c(0.05, 0.2, 0.35, 0.5, 0.75); ps <- c(0.1, 0.5, 0.9)
 alpha <- 0.1; lambda <- 0.01; theta <- 0.35
@@ -24,23 +24,23 @@ for(omega in omegas) {
     base.files.op <- c(base.files.op, curr.base)
     boot.files.op <- c(boot.files.op, curr.boot)
     
-    # file.create(curr.base)
-    # file.create(curr.boot)
-    # 
-    # curr.base.data <- baseSimulation(alpha, theta, p, lambda, omega)
-    # print(dim(curr.base.data))
-    # 
-    # write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
-    # 
-    # s <- curr.base.data[,seq(1, ncol(curr.base.data), 2)]
-    # g <- curr.base.data[,seq(2, ncol(curr.base.data), 2)]
-    # 
-    # curr.boot.data <- foreach(i = 1:ncol(g), .combine='cbind') %do% {
-    #   basicBootstrap(s[,i], g[,i])
-    # }
-    # print(dim(curr.boot.data))
-    # 
-    # write.table(curr.boot.data, file=curr.boot, append=FALSE, quote=FALSE, sep=",")
+    file.create(curr.base)
+    file.create(curr.boot)
+
+    curr.base.data <- baseSimulation(alpha, theta, p, lambda, omega)
+    print(dim(curr.base.data))
+
+    write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
+
+    s <- curr.base.data[,seq(1, ncol(curr.base.data), 2)]
+    g <- curr.base.data[,seq(2, ncol(curr.base.data), 2)]
+
+    curr.boot.data <- foreach(i = 1:ncol(g), .combine='cbind') %do% {
+      basicBootstrap(s[,i], g[,i])
+    }
+    print(dim(curr.boot.data))
+
+    write.table(curr.boot.data, file=curr.boot, append=FALSE, quote=FALSE, sep=",")
   }
 }
 
@@ -48,9 +48,9 @@ first.op <- boot.files.op[c(1, 4, 7, 10, 13)]
 second.op <- boot.files.op[c(2, 5, 8, 11, 14)]
 third.op <- boot.files.op[c(3, 6, 9, 12, 15)]
 
-# fit.first.op <- preprocessed(first.op, omegas, "omega")
-# fit.second.op <- preprocessed(second.op, omegas, "omega")
-# fit.third.op <- preprocessed(third.op, omegas, "omega")
+fit.first.op <- preprocessed(first.op, omegas, "omega")
+fit.second.op <- preprocessed(second.op, omegas, "omega")
+fit.third.op <- preprocessed(third.op, omegas, "omega")
 
 plot.p1.op <- cbind(plotFitness(fit.first.op, FALSE), p=p[1])
 plot.p2.op <- cbind(plotFitness(fit.second.op, FALSE), p=p[2])
@@ -96,6 +96,7 @@ legend('topleft', legend=c("p = 0.1", "p = 0.5", "p = 0.9"),
 
 
 
+#adds figure label
 line2user <- function(line, side) {
   lh <- par('cin')[2] * par('cex') * par('lheight') - .14
   x_off <- diff(grconvertX(c(0, lh), 'inches', 'npc'))
