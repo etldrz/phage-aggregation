@@ -23,3 +23,6 @@ Contains code and plots for the phage-aggregation project
   - omega_vs_p_changing.pdf
   - Archived file omega_p.RData
   - Archived folder 'omega=c(0.05, 0.2, 0.35, 0.5, 0.75), p=c(0.1, 0.5, 0.9), alpha=0.1, theta=0.35, lambda=0.01'
+ 
+- ### Figure 5:
+  - 
