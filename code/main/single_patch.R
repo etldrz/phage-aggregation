@@ -39,6 +39,10 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
   base <- c()
   
   for(b in burst.sizes.B){
+
+    # POSSIBLE p VARIATION
+    # p = rnorm(p, sqrt(p(1-p)/n))
+    # where n is an input for baseSimulation
     ws.fitness <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
     wg.fitness <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
     
