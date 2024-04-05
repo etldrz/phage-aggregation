@@ -33,7 +33,7 @@ viableParams <- function(alpha, theta, lambda) {
 #' Used by equilibrium simulation.
 #' RETURN: a matrix where the first column is the fitness vector for W_S and the
 #'  second is a fitness_vector for W_G
-baseSimulation <- function(alpha, theta, p, lambda, omega) {
+baseSimulation <- function(alpha, theta, p, lambda, omega, n=NULL) {
   
   # Simulated fitnesses
   base <- c()
@@ -41,15 +41,45 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
   for(b in burst.sizes.B){
 
     # POSSIBLE p VARIATION
-    # p = rnorm(p, sqrt(p(1-p)/n))
-    # where n is an input for baseSimulation
-    ws.fitness <- sample(c(0, 1, 2), reps, replace=TRUE, prob=c(lambda, alpha, theta*p))
-    wg.fitness <- sample(c(0, 1, 2, 3), reps, replace=TRUE, prob=c(lambda, alpha, theta*p, theta*(1-p)))
+    # p = rnorm(reps, p, sqrt(p(1-p)/n))
     
-    ws.fitness <- findLyseFitness(ws.fitness, burst.size.B=b, alpha, theta, p, 
-                                  lambda, omega, is.specialist=TRUE)
-    wg.fitness <- findLyseFitness(wg.fitness, burst.size.B=b, alpha, theta, p,
-                                  lambda, omega, is.specialist=FALSE)
+    if(is.null(n)) {
+     ws.fitness <- sample(c(0, 1, 2), reps, replace=TRUE, 
+                         prob=c(lambda, alpha, theta*p))
+     wg.fitness <- sample(c(0, 1, 2, 3), reps, replace=TRUE, 
+                         prob=c(lambda, alpha, theta*p, theta*(1-p)))
+     ws.fitness <- findLyseFitness(ws.fitness, burst.size.B=b, alpha, theta,  
+                                   lambda, omega, p.single=p, is.specialist=TRUE)
+    
+     wg.fitness <- findLyseFitness(wg.fitness, burst.size.B=b, alpha, theta, 
+                                   lambda, omega, p.single=p, is.specialist=FALSE)
+      
+    } else {
+      
+      p.deviates <- rbinom(reps, n, p) / n
+      
+      ws.fitness <- sapply(p.deviates,
+                           function(current.p) {
+                             sample(c(0, 1, 2), size=1,
+                                    prob=c(lambda, alpha, theta*current.p))
+                           })
+      
+      wg.fitness <- sapply(p.deviates,
+                           function(current.p) {
+                             sample(c(0, 1, 2, 3), size=1,
+                                    prob=c(lambda, alpha, 
+                                           theta*current.p, theta*(1-current.p)))
+                           })
+      ws.fitness <- findLyseFitness(ws.fitness, burst.size.B=b, alpha, theta, 
+                                    lambda, omega, is.specialist=TRUE, 
+                                    p.deviates=p.deviates)
+      wg.fitness <- findLyseFitness(wg.fitness, burst.size.B=b, alpha, theta,
+                                    lambda, omega, is.specialist=FALSE, 
+                                    p.deviates=p.deviates)
+    }
+   
+   
+
     
     base <- cbind(base, ws.fitness, wg.fitness)
   }
@@ -61,8 +91,9 @@ baseSimulation <- function(alpha, theta, p, lambda, omega) {
 #' Helper function used by baseSimulation
 #' This will be called to deal with phage interactions with hosts, in order to
 #' calculate the fitnesses of children and grandchildren.
-findLyseFitness <- function(outcomes, burst.size.B, alpha, theta, p, lambda, omega, 
-                            is.specialist) {
+findLyseFitness <- function(outcomes, burst.size.B, alpha, theta,
+                            lambda, omega, is.specialist, p.single=NULL,
+                            p.deviates=NULL) {
   # infected.bacteria represents a phage interacting with a host
   infected.bacteria <- which(outcomes %in% c(2, 3))
   if(length(infected.bacteria) == 0) return(outcomes)
@@ -76,9 +107,14 @@ findLyseFitness <- function(outcomes, burst.size.B, alpha, theta, p, lambda, ome
   # then returned.
   for(k in 1:length(infected.bacteria)){
     loc <- infected.bacteria[k]
+    if(!is.null(p.deviates)) {
+      p <- p.deviates[loc]
+    } else {
+      p <- p.single
+    }
     
     if(outcomes[loc] == 2){
-      burst.size <- burst.size.A
+      burst.size <- rpois(1, burst.size.A)
       if(burst.chances[k] == TRUE){
         inside.lyse.fitness <- NULL
         
@@ -95,7 +131,7 @@ findLyseFitness <- function(outcomes, burst.size.B, alpha, theta, p, lambda, ome
         outcomes[loc] <- burst.size
       }
     }else if(outcomes[loc] == 3){
-      burst.size <- burst.size.B
+      burst.size <- rpois(1, burst.size.B)
 
       if(burst.chances[k] == TRUE){
         inside.lyse.fitness <- sample(c(0, 1, burst.size.A, burst.size.B), burst.size, replace=TRUE, 
@@ -430,8 +466,10 @@ plotFitness <- function(fitness, generate.plot=TRUE) {
   plot <- ggplot(plotting, aes(x=plotting[,4], y=plotting[,1])) +
     geom_point() +
     geom_line() +
+    ylim(c(.2, 0.5)) +
     geom_errorbar(aes(ymin=plotting[,2], ymax=plotting[,3]), width=0.01, alpha=.75) +
-    xlab(attributes(fitness)$changing.name) +
+    xlab("sd(p)") +
+    #xlab(attributes(fitness)$changing.name) +
     ylab("R*") +
     theme_classic()
   unloadNamespace('ggplot2')

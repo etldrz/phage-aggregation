@@ -27,7 +27,7 @@ for(omega in omegas) {
     file.create(curr.base)
     file.create(curr.boot)
 
-    curr.base.data <- baseSimulation(alpha, theta, p, lambda, omega)
+    curr.base.data <- baseSimulation(alpha, theta, p, p.sd=p.sd, lambda, omega)
     print(dim(curr.base.data))
 
     write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
