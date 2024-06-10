@@ -24,23 +24,23 @@ for(theta in thetas) {
     base.files.tp <- c(base.files.tp, curr.base)
     boot.files.tp <- c(boot.files.tp, curr.boot)
 
-    file.create(curr.base)
-    file.create(curr.boot)
-
-    curr.base.data <- baseSimulation(alpha, theta, p, lambda, omega)
-    print(dim(curr.base.data))
-
-    write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
-
-    s <- curr.base.data[,seq(1, ncol(curr.base.data), 2)]
-    g <- curr.base.data[,seq(2, ncol(curr.base.data), 2)]
-
-    curr.boot.data <- foreach(i = 1:ncol(g), .combine='cbind') %do% {
-      basicBootstrap(s[,i], g[,i])
-    }
-    print(dim(curr.boot.data))
-
-    write.table(curr.boot.data, file=curr.boot, append=FALSE, quote=FALSE, sep=",")
+    # file.create(curr.base)
+    # file.create(curr.boot)
+    # 
+    # curr.base.data <- baseSimulation(alpha, theta, p, lambda, omega)
+    # print(dim(curr.base.data))
+    # 
+    # write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
+    # 
+    # s <- curr.base.data[,seq(1, ncol(curr.base.data), 2)]
+    # g <- curr.base.data[,seq(2, ncol(curr.base.data), 2)]
+    # 
+    # curr.boot.data <- foreach(i = 1:ncol(g), .combine='cbind') %do% {
+    #   basicBootstrap(s[,i], g[,i])
+    # }
+    # print(dim(curr.boot.data))
+    # 
+    # write.table(curr.boot.data, file=curr.boot, append=FALSE, quote=FALSE, sep=",")
   }
 }
 

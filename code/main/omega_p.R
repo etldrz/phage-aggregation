@@ -1,11 +1,13 @@
-source('./phage-aggregation/code/main/single_patch.R')
+setwd(dirname(rstudioapi::documentPath()))
+source('single_patch.R')
+setwd("../../")
 
 library(foreach)
 library(ggplot2)
 library(viridis)
 
-base.file <- './phage-aggregation/data/base/'
-boot.file <- './phage-aggregation/data/bootstrapped/'
+base.file <- './data/base/'
+boot.file <- './data/bootstrapped/'
 
 omegas <- c(0.05, 0.2, 0.35, 0.5, 0.75); ps <- c(0.1, 0.5, 0.9)
 alpha <- 0.1; lambda <- 0.01; theta <- 0.35
@@ -24,23 +26,23 @@ for(omega in omegas) {
     base.files.op <- c(base.files.op, curr.base)
     boot.files.op <- c(boot.files.op, curr.boot)
     
-    file.create(curr.base)
-    file.create(curr.boot)
-
-    curr.base.data <- baseSimulation(alpha, theta, p, p.sd=p.sd, lambda, omega)
-    print(dim(curr.base.data))
-
-    write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
-
-    s <- curr.base.data[,seq(1, ncol(curr.base.data), 2)]
-    g <- curr.base.data[,seq(2, ncol(curr.base.data), 2)]
-
-    curr.boot.data <- foreach(i = 1:ncol(g), .combine='cbind') %do% {
-      basicBootstrap(s[,i], g[,i])
-    }
-    print(dim(curr.boot.data))
-
-    write.table(curr.boot.data, file=curr.boot, append=FALSE, quote=FALSE, sep=",")
+    # file.create(curr.base)
+    # file.create(curr.boot)
+    # 
+    # curr.base.data <- baseSimulation(alpha, theta, p, p.sd=p.sd, lambda, omega)
+    # print(dim(curr.base.data))
+    # 
+    # write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
+    # 
+    # s <- curr.base.data[,seq(1, ncol(curr.base.data), 2)]
+    # g <- curr.base.data[,seq(2, ncol(curr.base.data), 2)]
+    # 
+    # curr.boot.data <- foreach(i = 1:ncol(g), .combine='cbind') %do% {
+    #   basicBootstrap(s[,i], g[,i])
+    # }
+    # print(dim(curr.boot.data))
+    # 
+    # write.table(curr.boot.data, file=curr.boot, append=FALSE, quote=FALSE, sep=",")
   }
 }
 
@@ -48,9 +50,10 @@ first.op <- boot.files.op[c(1, 4, 7, 10, 13)]
 second.op <- boot.files.op[c(2, 5, 8, 11, 14)]
 third.op <- boot.files.op[c(3, 6, 9, 12, 15)]
 
-fit.first.op <- preprocessed(first.op, omegas, "omega")
-fit.second.op <- preprocessed(second.op, omegas, "omega")
-fit.third.op <- preprocessed(third.op, omegas, "omega")
+load("./plots/simple_model_outputs/omega_p.RData")
+# fit.first.op <- preprocessed(first.op, omegas, "omega")
+# fit.second.op <- preprocessed(second.op, omegas, "omega")
+# fit.third.op <- preprocessed(third.op, omegas, "omega")
 
 plot.p1.op <- cbind(plotFitness(fit.first.op, FALSE), p=p[1])
 plot.p2.op <- cbind(plotFitness(fit.second.op, FALSE), p=p[2])
@@ -62,10 +65,11 @@ prediction.p3 <- complexSimPrediction(alpha, theta, ps[3], lambda)
 
 title.txt <- paste("alpha:", alpha,  "theta:", theta, "lambda:", lambda)
 
-cols=c('darkred', 'darkorange3', 'darkblue')
+cols <- c('darkred', 'darkorange3', 'darkblue')
 
 #simulated points
-plot(y=plot.p1.op[,1], x=plot.p1.op[,4], type='p', ylab="R*", xlab="\U03C9", cex.lab=1.5,
+plot(y=plot.p1.op[,1], x=plot.p1.op[,4], type='p', ylab="R*", 
+     xlab="\U03C9 (Chance to burst in patch)", cex.lab=1.5,
      ylim=c(0, 1), xlim=c(0.05, 0.75), pch=16, cex=1.15, col=cols[1])
 points(y=plot.p2.op[,1], x=plot.p2.op[,4], pch=16, cex=1.15, col=cols[2])
 points(y=plot.p3.op[,1], x=plot.p3.op[,4], pch=16, cex=1.15, col=cols[3])
@@ -116,8 +120,4 @@ addfiglab <- function(lab, xl = par()$mar[2], yl = par()$mar[3]) {
   
 }
 
-addfiglab("C")
-
-
-
-
+addfiglab("A")
