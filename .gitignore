@@ -1,5 +1,4 @@
 # Ignoring plotting data due to size constraints
-*.txt
 data/base/*
 data/bootstrapped/*
 
