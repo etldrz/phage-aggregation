@@ -1,8 +1,7 @@
-# Ignoring plotting data due to size constraints
-data/base/*
-data/bootstrapped/*
+# Ignoring raw plotting data due to size constraints
+plots/simple_model_data/*
 
-# Ignoring plots that aren't directly used or of use
+# Ignoring plots that aren't directly used
 plots/additional/*
 
 # Ignoring misc
