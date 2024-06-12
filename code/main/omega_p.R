@@ -6,8 +6,8 @@ library(foreach)
 library(ggplot2)
 library(viridis)
 
-base.file <- './data/base/'
-boot.file <- './data/bootstrapped/'
+base.file <- './plots/simple_model_data/base/'
+boot.file <- './plots/simple_model_outputs/'
 
 omegas <- c(0.05, 0.2, 0.35, 0.5, 0.75); ps <- c(0.1, 0.5, 0.9)
 alpha <- 0.1; lambda <- 0.01; theta <- 0.35
