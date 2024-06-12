@@ -1,12 +1,13 @@
 setwd(dirname(rstudioapi::documentPath()))
 source('single_patch.R')
+setwd("../../")
 
 library(foreach)
 library(ggplot2)
 library(viridis)
 
-base.file <- './phage-aggregation/data/base/'
-boot.file <- './phage-aggregation/data/bootstrapped/'
+base.file <- './plots/simple_model_data/base/'
+boot.file <- './plots/simple_model_outputs/'
 
 thetas <- c(0.05, 0.2, 0.35, 0.5, 0.75); ps <- c(0.1, 0.5, 0.9)
 alpha <- 0.1; lambda <- 0.01; omega <- 0
@@ -49,9 +50,10 @@ first.tp <- boot.files.tp[c(1, 4, 7, 10, 13)]
 second.tp <- boot.files.tp[c(2, 5, 8, 11, 14)]
 third.tp <- boot.files.tp[c(3, 6, 9, 12, 15)]
 
-fit.first.tp <- preprocessed(first.tp, thetas, "theta")
-fit.second.tp <- preprocessed(second.tp, thetas, "theta")
-fit.third.tp <- preprocessed(third.tp, thetas, "theta")
+load("./plots/simple_model_outputs/theta_p.RData")
+# fit.first.tp <- preprocessed(first.tp, thetas, "theta")
+# fit.second.tp <- preprocessed(second.tp, thetas, "theta")
+# fit.third.tp <- preprocessed(third.tp, thetas, "theta")
 
 plot.p1.tp <- cbind(plotFitness(fit.first.tp, FALSE), p=ps[1])
 plot.p2.tp <- cbind(plotFitness(fit.second.tp, FALSE), p=ps[2])
