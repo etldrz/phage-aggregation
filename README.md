@@ -41,3 +41,5 @@ Contains code and plots for the phage-aggregation project
   - code/main/fig_S2.R
   - code/main/figure_S2.R
 
+ Note: some of the data (all .zip and .txt) are stored using [git lsf](https://git-lfs.com/)
+
