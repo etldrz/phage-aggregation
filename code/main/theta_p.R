@@ -1,4 +1,5 @@
-source('./phage-aggregation/code/main/single_patch.R')
+setwd(dirname(rstudioapi::documentPath()))
+source('single_patch.R')
 
 library(foreach)
 library(ggplot2)
