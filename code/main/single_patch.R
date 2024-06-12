@@ -79,9 +79,6 @@ baseSimulation <- function(alpha, theta, p, lambda, omega, n=NULL) {
                                     p.deviates=p.deviates)
     }
    
-   
-
-    
     base <- cbind(base, ws.fitness, wg.fitness)
   }
   
@@ -218,7 +215,6 @@ rStar <- function(file, current.changing) {
   s <- boot[,seq(1, ncol(boot), 2)]
   g <- boot[,seq(2, ncol(boot), 2)]
   
-  
   # Containers for possibly useful upper/lower bounds in the file from which
   # R* can be found
   viable.lower <- c()
@@ -319,7 +315,6 @@ swap <- function(data){
   swap.count <- length(to.fix)
   
   if(swap.count == 0) return(data)
-  
   
   for(index in to.fix){
     # The current data location trying to be fixed.
@@ -474,7 +469,6 @@ plotFitness <- function(fitness, generate.plot=TRUE) {
     ylab("R*") +
     theme_classic()
   unloadNamespace('ggplot2')
-  
   
   return(plot)
 }
