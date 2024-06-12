@@ -19,7 +19,6 @@ for(p in ps) {
   
      curr.base <- paste(base.file, locat, sep="")
      curr.boot <- paste(boot.file, locat, sep="")
-     
 
      base.files.psd <- c(base.files.psd, curr.base)
      boot.files.psd <- c(boot.files.psd, curr.boot)
@@ -49,7 +48,7 @@ for(p in ps) {
  }
 }
 
-.psd <- boot.files.psd[1:7]
+first.psd <- boot.files.psd[1:7]
 second.psd <- boot.files.psd[8:14]
 third.psd <- boot.files.psd[15:21]
 
