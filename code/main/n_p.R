@@ -5,8 +5,8 @@ setwd("../../")
 library(ggplot2)
 library(foreach)
 
-base.file <- "~/Desktop/p.a_revisions/varying_p/base/"
-boot.file <- "~/Desktop/p.a_revisions/varying_p/boot/"
+base.file <- "./plots/simple_model_data/varying_p/base/"
+boot.file <- "./plots/simple_model_data/varying_p/boot/"
 
 ps <- c(.1, .5, .9); n <- c(5, 10, 20, 30, 50, 500, 5000)
 omega <- 0.05; lambda <- 0.01; alpha <- 0.1; theta <- 0.35
