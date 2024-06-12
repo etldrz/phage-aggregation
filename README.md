@@ -17,31 +17,27 @@ Contains code and plots for the phage-aggregation project
   - code/main/omega_p.R
   - code/main/n_p.R
   - code/main/single_patch.R
-
-- <strike>### Figure 4:
-  - plots/omega_revised.png
-  - plots/simple_model_outputs/
-  - code/main/omega_p.R
-  - code/main/single_patch.R</strike>
+ 
+- ### Figure 4:
+  - code/main/figs_04_and_05.R
+  - plots/complex_model_outputs/
+  - code/main/dynamic_multipatch_simulator_generalized.R
+  - code/main/change_matrices.R
  
 - ### Figure 5:
-  - plots/two_panel_revised.pdf
+  - code/main/figs_05_and_05.R
   - plots/complex_model_outputs/
-  - code/main/patch_simulator.R
+  - code/main/dynamic_multipatch_opportunity_cost_tracker.R
   - code/main/change_matrices.R
-  - code/main/figure_5A.R
-  - code/main/figure_5B.R
-
-- ### Figure 6:
-  - plots/hosts_apart.pdf
-  - plots/complex_model_outputs/
-  - code/main/patch_simulator.R
-  - code/main/change_matrices.R
-  - code/main/figure_6.R
  
-- - ### Supplemental Figure 1:
+- ### Supplemental Figure 1:
   - plots/base_plot.pdf
   - plots/simple_model_outputs/
   - code/main/paper_base_plot.R
   - code/main/single_patch.R
+ 
+- ### Supplemental Figure 2:
+  - plots/complex_model_outputs/
+  - code/main/fig_S2.R
+  - code/main/figure_S2.R
 
