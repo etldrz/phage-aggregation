@@ -3,7 +3,7 @@ burst.sizes.B <- 0:(burst.size.A + as.integer(burst.size.A * 0.05))
 #The burst size of host B goes slightly past that of host A as an easy solution
   #to prevent bugs.
 
-# reps <- 1e6 # how large each fitness vector is
+reps <- 1e6 # how large each fitness vector is
 bt.size <- 1e4 # the size of the bootstrapped fitness vector
 allowed.overlap <- 0.01 # proportion of allowed overlap between bootstrapped vectors
 
