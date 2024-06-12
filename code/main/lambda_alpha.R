@@ -1,11 +1,13 @@
-source('./phage-aggregation/code/main/single_patch.R')
+setwd(dirname(rstudioapi::documentPath()))
+source('single_patch.R')
+setwd("../../")
 
 library(foreach)
 library(ggplot2)
 library(viridis)
 
-base.file <- './phage-aggregation/data/base/'
-boot.file <- './phage-aggregation/data/bootstrapped/'
+base.file <- './plots/simple_model_data/base/'
+boot.file <- './plots/simple_model_outputs/'
 
 lambdas <- c(0.05, 0.2, 0.35, 0.5, 0.75); p <- 0.5
 alphas <- c(0.1, 0.5, 0.9); omega <- 0; theta <- 0.35
@@ -24,23 +26,23 @@ for(lambda in lambdas) {
     base.files.la <- c(base.files.la, curr.base)
     boot.files.la <- c(boot.files.la, curr.boot)
     
-    file.create(curr.base)
-    file.create(curr.boot)
+    # file.create(curr.base)
+    # file.create(curr.boot)
 
-    curr.base.data <- baseSimulation(alpha, theta, p, lambda, omega)
-    print(dim(curr.base.data))
+    # curr.base.data <- baseSimulation(alpha, theta, p, lambda, omega)
+    # print(dim(curr.base.data))
 
-    write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
+    # write.table(curr.base.data, curr.base, quote=FALSE, sep=",", append=FALSE)
 
-    s <- curr.base.data[,seq(1, ncol(curr.base.data), 2)]
-    g <- curr.base.data[,seq(2, ncol(curr.base.data), 2)]
+    # s <- curr.base.data[,seq(1, ncol(curr.base.data), 2)]
+    # g <- curr.base.data[,seq(2, ncol(curr.base.data), 2)]
 
-    curr.boot.data <- foreach(i = 1:ncol(g), .combine='cbind') %do% {
-      basicBootstrap(s[,i], g[,i])
-    }
-    print(dim(curr.boot.data))
+    # curr.boot.data <- foreach(i = 1:ncol(g), .combine='cbind') %do% {
+    #   basicBootstrap(s[,i], g[,i])
+    # }
+    # print(dim(curr.boot.data))
 
-    write.table(curr.boot.data, file=curr.boot, append=FALSE, quote=FALSE, sep=",")
+    # write.table(curr.boot.data, file=curr.boot, append=FALSE, quote=FALSE, sep=",")
   }
 }
 
@@ -48,9 +50,10 @@ first.la <- boot.files.la[c(1, 4, 7, 10, 13)]
 second.la <- boot.files.la[c(2, 5, 8, 11, 14)]
 third.la <- boot.files.la[c(3, 6, 9, 12, 15)]
 
-fit.first.la <- preprocessed(first.la, lambdas, "lambda")
-fit.second.la <- preprocessed(second.la, lambdas, "lambda")
-fit.third.la <- preprocessed(third.la, lambdas, "lambda")
+load("./plots/simple_model_outputs/lambda_alpha.RData")
+# fit.first.la <- preprocessed(first.la, lambdas, "lambda")
+# fit.second.la <- preprocessed(second.la, lambdas, "lambda")
+# fit.third.la <- preprocessed(third.la, lambdas, "lambda")
 
 plot.alpha1.la <- cbind(plotFitness(fit.first.la, FALSE), p=p[1])
 plot.alpha2.la <- cbind(plotFitness(fit.second.la, FALSE), p=p[2])
@@ -116,4 +119,3 @@ addfiglab <- function(lab, xl = par()$mar[2], yl = par()$mar[3]) {
 }
 
 addfiglab("B")
-
