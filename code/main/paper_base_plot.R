@@ -1,4 +1,4 @@
-source('./phage-aggregation/code/main/single_patch.R')
+source('single_patch.R')
 
 base.data <- paste0("./phage-aggregation/data/base/",
                                "alpha=0.1, theta=0.2, p=0.5, lambda=0.01, omega=0.txt")
