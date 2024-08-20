@@ -15,7 +15,7 @@ Contains code and plots for the phage-aggregation project
   - plots/fig_3.png
   - plots/simple_model_outputs/
   - code/main/omega_p.R
-  - code/main/n_p.R
+  - code/main/popsize_p.R
   - code/main/single_patch.R
  
 - ### Figure 4:
