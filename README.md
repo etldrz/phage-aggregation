@@ -1,6 +1,6 @@
 # phage-aggregation
 
-Contains code and plots for the phage-aggregation project
+Contains code and plots for the phage-aggregation project, found at https://doi.org/10.1002/ece3.70273
 
 ## FIGURE CODE AND DATA
  
